@@ -131,7 +131,7 @@ export function useProfile() {
       
       // 認証サブスクリプションをクリーンアップ
       if (authSubscriptionRef.current) {
-        authSubscriptionRef.current.unsubscribe();
+        (authSubscriptionRef.current as any)?.unsubscribe();
         authSubscriptionRef.current = null;
       }
       
