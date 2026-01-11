@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { RotateCcw, BookOpen, Trophy, XCircle } from "lucide-react";
 import { WordbookItem } from "@/lib/db";
 import Navigation from "@/components/Navigation";
 
-export default function TestResultPage() {
+function TestResultContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [wrongWords, setWrongWords] = useState<WordbookItem[]>([]);
@@ -165,6 +165,14 @@ export default function TestResultPage() {
 
       <Navigation />
     </div>
+  );
+}
+
+export default function TestResultPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-white">読み込み中...</div>}>
+      <TestResultContent />
+    </Suspense>
   );
 }
 

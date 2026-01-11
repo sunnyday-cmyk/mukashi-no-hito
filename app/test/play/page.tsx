@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { db, WordbookItem } from "@/lib/db";
 import Navigation from "@/components/Navigation";
@@ -14,7 +14,7 @@ interface Question {
   mode: TestMode;
 }
 
-export default function TestPlayPage() {
+function TestPlayContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -284,6 +284,14 @@ export default function TestPlayPage() {
 
       <Navigation />
     </div>
+  );
+}
+
+export default function TestPlayPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-white">読み込み中...</div>}>
+      <TestPlayContent />
+    </Suspense>
   );
 }
 
