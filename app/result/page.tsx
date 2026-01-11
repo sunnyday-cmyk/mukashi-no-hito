@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { X, RotateCcw, BookPlus, Check } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -21,7 +21,7 @@ interface AnalysisResult {
   explanation: string;
 }
 
-export default function ResultPage() {
+function ResultContent() {
   const searchParams = useSearchParams();
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [originalText, setOriginalText] = useState<string>("");
@@ -385,5 +385,13 @@ export default function ResultPage() {
       )}
       <Navigation />
     </div>
+  );
+}
+
+export default function ResultPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-white">読み込み中...</div>}>
+      <ResultContent />
+    </Suspense>
   );
 }
