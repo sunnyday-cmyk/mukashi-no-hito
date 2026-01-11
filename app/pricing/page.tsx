@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Check, ArrowRight, Loader2, CheckCircle, XCircle } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-export default function PricingPage() {
+function PricingContent() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -209,6 +209,14 @@ export default function PricingPage() {
 
       <Navigation />
     </div>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">読み込み中...</div>}>
+      <PricingContent />
+    </Suspense>
   );
 }
 
