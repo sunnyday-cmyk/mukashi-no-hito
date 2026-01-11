@@ -9,9 +9,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Supabase環境変数が設定されていません");
 }
 
-// @ts-ignore
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-12-18.acacia",
+  apiVersion: "2024-12-18.acacia" as any,
   typescript: true,
 });
 
