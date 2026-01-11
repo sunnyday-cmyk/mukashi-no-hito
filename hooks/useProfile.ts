@@ -124,7 +124,7 @@ export function useProfile() {
       }
     });
 
-    authSubscriptionRef.current = subscription;
+    authSubscriptionRef.current = subscription as any;
 
     return () => {
       isMounted = false;
