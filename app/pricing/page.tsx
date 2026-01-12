@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Check, ArrowRight, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Suspense } from "react";
 import Navigation from "@/components/Navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -73,12 +74,6 @@ function PricingContent() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-gray-900">
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-14 max-w-2xl items-center px-5">
-          <h1 className="text-base font-medium text-gray-900">料金プラン</h1>
-        </div>
-      </header>
-
       <main className="mx-auto w-full max-w-2xl flex-1 px-5 pt-20 py-12 pb-24">
         <div className="space-y-8">
           <div className="text-center">
@@ -214,7 +209,14 @@ function PricingContent() {
 
 export default function PricingPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">読み込み中...</div>}>
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          <p className="text-sm text-gray-600">読み込み中...</p>
+        </div>
+      </div>
+    }>
       <PricingContent />
     </Suspense>
   );

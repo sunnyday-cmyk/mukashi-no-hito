@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
-import { X, RotateCcw, BookPlus, Check } from "lucide-react";
+import { X, RotateCcw, BookPlus, Check, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import Navigation from "@/components/Navigation";
@@ -195,12 +195,6 @@ function ResultContent() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-gray-900">
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
-        <div className="flex items-center justify-between px-5 py-4">
-          <h1 className="text-lg font-medium">解析結果</h1>
-        </div>
-      </header>
-
       <main className="flex-1 px-5 pt-20 py-6 pb-24">
         {/* 原文エリア */}
         <section className="mb-8">
@@ -390,7 +384,14 @@ function ResultContent() {
 
 export default function ResultPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-white">読み込み中...</div>}>
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          <p className="text-sm text-gray-600">読み込み中...</p>
+        </div>
+      </div>
+    }>
       <ResultContent />
     </Suspense>
   );

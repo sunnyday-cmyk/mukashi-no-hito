@@ -4,7 +4,6 @@ import { useState } from "react";
 import { X, Loader2, Send } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Navigation from "@/components/Navigation";
-import Header from "@/components/Header";
 import { supabase } from "@/lib/supabaseClient";
 import { useProfile } from "@/hooks/useProfile";
 
@@ -95,8 +94,6 @@ export default function InputPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-gray-900">
-      <Header />
-
       <main className="flex flex-1 flex-col px-5 pt-20 py-6 pb-24">
         <div className="flex flex-1 flex-col">
           {/* 説明文 */}

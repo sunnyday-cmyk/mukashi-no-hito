@@ -13,7 +13,6 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Navigation from "@/components/Navigation";
-import Header from "@/components/Header";
 import { supabase } from "@/lib/supabaseClient";
 import type { Session } from "@supabase/supabase-js";
 
@@ -123,7 +122,6 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-gray-900">
-      <Header />
       <main className="flex flex-1 flex-col items-center px-6 pt-20 pb-24">
         {/* 説明文 */}
         <div className="w-full max-w-md text-center mb-8">

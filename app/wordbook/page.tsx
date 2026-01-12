@@ -77,12 +77,6 @@ export default function WordbookPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-gray-900">
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
-        <div className="flex items-center gap-4 px-5 py-4">
-          <h1 className="text-lg font-medium">単語帳</h1>
-        </div>
-      </header>
-
       <main className="flex-1 px-5 pt-20 py-6 pb-24">
         {/* 検索バー */}
         <div className="mb-4">

@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { db, WordbookItem } from "@/lib/db";
 import Navigation from "@/components/Navigation";
+import { Loader2 } from "lucide-react";
 
 type TestMode = "meaning" | "partOfSpeech" | "conjugation";
 
@@ -174,26 +175,24 @@ function TestPlayContent() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-gray-900">
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
-        <div className="px-5 py-4">
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-lg font-medium">問題 {currentIndex + 1}</h1>
-            <span className="text-sm text-gray-500">
-              {currentIndex + 1} / {questions.length}
-            </span>
-          </div>
-          {/* 進捗バー */}
-          <div className="h-2 w-full rounded-full bg-gray-200">
-            <div
-              className="h-full rounded-full bg-gray-900 transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      </header>
-
-      <main className="flex flex-1 flex-col px-5 pt-24 py-6 pb-24">
+      <main className="flex flex-1 flex-col px-5 pt-20 py-6 pb-24">
         <div className="mx-auto w-full max-w-md space-y-6">
+          {/* 進捗表示 */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h1 className="text-lg font-medium">問題 {currentIndex + 1}</h1>
+              <span className="text-sm text-gray-500">
+                {currentIndex + 1} / {questions.length}
+              </span>
+            </div>
+            {/* 進捗バー */}
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-full rounded-full bg-gray-900 transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
           {/* 問題表示 */}
           <div className="rounded-2xl border-2 border-gray-200 bg-gray-50 p-8 text-center">
             <div className="mb-4">
@@ -289,7 +288,14 @@ function TestPlayContent() {
 
 export default function TestPlayPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-white">読み込み中...</div>}>
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          <p className="text-sm text-gray-600">読み込み中...</p>
+        </div>
+      </div>
+    }>
       <TestPlayContent />
     </Suspense>
   );

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import Footer from "@/components/Footer";
+import Header from "@/components/Header";
 
 export const metadata: Metadata = {
   title: "昔の人 | 古文解析アプリ",
@@ -37,6 +38,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className="antialiased bg-white">
+        <Header />
         {children}
         <Footer />
         <ServiceWorkerRegistration />
