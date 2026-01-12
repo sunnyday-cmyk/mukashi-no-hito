@@ -40,10 +40,10 @@ export default function Header() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-gray-200 bg-white">
-      <div className="mx-auto flex h-14 max-w-md items-center justify-between gap-3 px-5">
-        <h1 className="text-base font-medium text-gray-900">昔の人</h1>
-        <div className="flex items-center gap-2">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-gray-200 bg-white safe-area-top">
+      <div className="mx-auto flex h-14 max-w-md items-center justify-between gap-2 px-4">
+        <h1 className="text-base font-medium text-gray-900 flex-shrink-0">昔の人</h1>
+        <div className="flex items-center gap-2 flex-shrink-0 min-w-0">
           <CreditsDisplay />
         </div>
       </div>

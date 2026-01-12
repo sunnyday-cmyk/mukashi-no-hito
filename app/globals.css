@@ -65,3 +65,20 @@ body {
 .test-feedback-wrong {
   animation: shake 0.5s ease-in-out;
 }
+
+/* PWA対応: Safe Area Insets */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* モバイル向け: タップしやすいボタンサイズ */
+@media (max-width: 640px) {
+  button, a[role="button"] {
+    min-height: 44px; /* iOS推奨の最小タップサイズ */
+    min-width: 44px;
+  }
+}

@@ -133,19 +133,19 @@ export default function Home() {
         </div>
 
         {/* 機能カード */}
-        <section className="w-full max-w-md space-y-4">
+        <section className="w-full max-w-md space-y-3">
           <Link
             href="/scan"
-            className="flex w-full items-center gap-4 rounded-2xl border-2 border-amber-200 bg-amber-50 px-5 py-5 shadow-md transition hover:bg-amber-100 hover:shadow-lg active:scale-[0.98]"
+            className="flex w-full items-center gap-4 rounded-2xl border-2 border-amber-200 bg-amber-50 px-5 py-4 min-h-[64px] shadow-md transition hover:bg-amber-100 hover:shadow-lg active:scale-[0.98] touch-manipulation"
           >
-            <span className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-sm">
-              <Camera className="h-7 w-7" />
+            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-sm">
+              <Camera className="h-6 w-6" />
             </span>
-            <div className="flex-1 text-left">
-              <p className="text-lg font-medium text-gray-900">
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-base font-medium text-gray-900">
                 カメラで撮影
               </p>
-              <p className="mt-1 text-xs text-amber-900/70">
+              <p className="mt-0.5 text-xs text-amber-900/70 line-clamp-1">
                 古文の紙面や教科書を写して、そのまま解析
               </p>
             </div>
@@ -153,16 +153,16 @@ export default function Home() {
 
           <Link
             href="/input"
-            className="flex w-full items-center gap-4 rounded-2xl border-2 border-gray-200 bg-white px-5 py-5 shadow-md transition hover:bg-gray-50 hover:shadow-lg active:scale-[0.98]"
+            className="flex w-full items-center gap-4 rounded-2xl border-2 border-gray-200 bg-white px-5 py-4 min-h-[64px] shadow-md transition hover:bg-gray-50 hover:shadow-lg active:scale-[0.98] touch-manipulation"
           >
-            <span className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl bg-gray-900 text-white shadow-sm">
-              <Type className="h-7 w-7" />
+            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gray-900 text-white shadow-sm">
+              <Type className="h-6 w-6" />
             </span>
-            <div className="flex-1 text-left">
-              <p className="text-lg font-medium text-gray-900">
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-base font-medium text-gray-900">
                 テキスト入力
               </p>
-              <p className="mt-1 text-xs text-gray-600">
+              <p className="mt-0.5 text-xs text-gray-600 line-clamp-1">
                 手元の古文を書き写して、丁寧に読み解く
               </p>
             </div>
@@ -170,16 +170,16 @@ export default function Home() {
 
           <Link
             href="/test"
-            className="flex w-full items-center gap-4 rounded-2xl border-2 border-blue-200 bg-blue-50 px-5 py-5 shadow-md transition hover:bg-blue-100 hover:shadow-lg active:scale-[0.98]"
+            className="flex w-full items-center gap-4 rounded-2xl border-2 border-blue-200 bg-blue-50 px-5 py-4 min-h-[64px] shadow-md transition hover:bg-blue-100 hover:shadow-lg active:scale-[0.98] touch-manipulation"
           >
-            <span className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl bg-blue-500 text-white shadow-sm">
-              <BookOpen className="h-7 w-7" />
+            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-blue-500 text-white shadow-sm">
+              <BookOpen className="h-6 w-6" />
             </span>
-            <div className="flex-1 text-left">
-              <p className="text-lg font-medium text-gray-900">
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-base font-medium text-gray-900">
                 単語テスト
               </p>
-              <p className="mt-1 text-xs text-blue-900/70">
+              <p className="mt-0.5 text-xs text-blue-900/70 line-clamp-1">
                 単語帳の単語でテストに挑戦
               </p>
             </div>
