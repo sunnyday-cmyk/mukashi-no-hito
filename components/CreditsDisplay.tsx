@@ -1,6 +1,7 @@
 "use client";
 
 import { useProfile } from "@/hooks/useProfile";
+import Link from "next/link";
 import { Infinity, Coins } from "lucide-react";
 
 export default function CreditsDisplay() {
@@ -16,27 +17,33 @@ export default function CreditsDisplay() {
     return null;
   }
 
-  if (profile.is_subscribed) {
-    return (
-      <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm">
-        <Infinity className="h-3.5 w-3.5" />
-        <span>Premium</span>
-      </div>
-    );
-  }
-
-  const isLow = profile.credits <= 1;
-
   return (
-    <div
-      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm ${
-        isLow
-          ? "border-red-300 bg-red-50 text-red-700"
-          : "border-gray-300 bg-white text-gray-700"
-      }`}
-    >
-      <Coins className={`h-3.5 w-3.5 ${isLow ? "text-red-600" : "text-gray-600"}`} />
-      <span>残り：{profile.credits}回</span>
+    <div className="flex items-center gap-2">
+      {profile.is_subscribed ? (
+        <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm">
+          <Infinity className="h-3.5 w-3.5" />
+          <span>Premium</span>
+        </div>
+      ) : (
+        <>
+          <div
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm ${
+              profile.credits <= 1
+                ? "border-red-300 bg-red-50 text-red-700"
+                : "border-gray-300 bg-white text-gray-700"
+            }`}
+          >
+            <Coins className={`h-3.5 w-3.5 ${profile.credits <= 1 ? "text-red-600" : "text-gray-600"}`} />
+            <span>残り：{profile.credits}回</span>
+          </div>
+          <Link
+            href="/pricing"
+            className="flex items-center gap-1 rounded-full border-2 border-amber-400 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 shadow-sm transition hover:bg-amber-100 active:scale-95"
+          >
+            <span>無制限プランへ</span>
+          </Link>
+        </>
+      )}
     </div>
   );
 }
