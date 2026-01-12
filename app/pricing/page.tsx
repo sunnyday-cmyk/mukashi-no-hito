@@ -4,7 +4,6 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Check, ArrowRight, Loader2, CheckCircle, XCircle } from "lucide-react";
-import { Suspense } from "react";
 import Navigation from "@/components/Navigation";
 import { supabase } from "@/lib/supabaseClient";
 
