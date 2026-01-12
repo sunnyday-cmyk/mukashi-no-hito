@@ -29,8 +29,8 @@ export default function Navigation() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // 未ログイン時、またはログインページでは非表示
-  if (loading || !session || pathname === "/login") {
+  // 未ログイン時、またはログインページ、カメラ画面では非表示
+  if (loading || !session || pathname === "/login" || pathname === "/scan") {
     return null;
   }
 

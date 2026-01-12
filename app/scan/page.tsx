@@ -241,9 +241,9 @@ export default function ScanPage() {
 
       {/* 下部操作エリア（半透明の黒背景） */}
       {!captured && (
-        <div className="absolute bottom-0 left-0 right-0 z-30 bg-black/50 backdrop-blur-sm pb-4 safe-area-bottom">
-          {/* シャッターボタン（下から12%の位置、カメラらしいデザイン） */}
-          <div className="flex items-center justify-center" style={{ paddingTop: '8vh' }}>
+        <div className="absolute bottom-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-sm safe-area-bottom" style={{ paddingBottom: '80px' }}>
+          {/* シャッターボタン（下から80-100pxの位置、カメラらしいデザイン） */}
+          <div className="flex items-center justify-center py-4">
             <button
               type="button"
               onClick={handleCapture}
