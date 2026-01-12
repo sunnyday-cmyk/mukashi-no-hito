@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, RefreshCcw, Loader2, Edit3, ArrowRight } from "lucide-react";
 import Tesseract from "tesseract.js";
 import Navigation from "@/components/Navigation";
-import Header from "@/components/Header";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { useProfile } from "@/hooks/useProfile";
@@ -164,11 +163,8 @@ export default function ScanPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-black text-white">
-      {/* カメラ画面ではHeaderを非表示 */}
-      
-      {/* カメラプレビューエリア（ヘッダーとナビゲーションの間の全画面） */}
-      <div className="relative flex-1 overflow-hidden pt-0">
+    <div className="relative min-h-screen bg-black text-white">
+      <div className="absolute inset-0">
         {!captured ? (
           <video
             ref={videoRef}
@@ -184,106 +180,100 @@ export default function ScanPage() {
             className="h-full w-full object-contain bg-black"
           />
         )}
+        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+      </div>
 
-        {/* OCR ローディングオーバーレイ */}
-        {(ocrLoading || analyzing) && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
-            <Loader2 className="mb-3 h-10 w-10 animate-spin text-white" />
-            <p className="text-sm text-gray-100">{statusText}</p>
-          </div>
-        )}
+      {/* OCR ローディングオーバーレイ */}
+      {(ocrLoading || analyzing) && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
+          <Loader2 className="mb-3 h-10 w-10 animate-spin text-white" />
+          <p className="text-sm text-gray-100">{statusText}</p>
+        </div>
+      )}
 
-        {/* エラーメッセージ */}
-        {error && !captured && (
-          <div className="absolute top-4 left-1/2 z-20 -translate-x-1/2 rounded-xl bg-red-500/90 px-4 py-2 text-sm text-white backdrop-blur">
+      <div className="relative z-10 flex h-full flex-col">
+        <header className="flex items-center justify-between px-5 pt-5 text-sm text-gray-200">
+          <span>カメラ撮影</span>
+          {loading && <span className="text-[11px] text-gray-400">起動中…</span>}
+        </header>
+
+        {error && (
+          <div className="mx-5 mt-3 rounded-xl bg-red-500/20 px-3 py-2 text-[13px] text-red-100">
             {error}
           </div>
         )}
 
-        {/* 読み取り結果編集エリア（撮影後） */}
-        {captured && ocrText && (
-          <div className="absolute inset-x-4 top-4 z-20 rounded-2xl bg-white/95 p-4 backdrop-blur">
-            <div className="mb-3 flex items-center gap-2 text-sm text-gray-900">
-              <Edit3 className="h-4 w-4" />
-              <span>読み取り結果（編集できます）</span>
+        <div className="flex flex-1 flex-col justify-end pb-8">
+          {/* 読み取り結果編集エリア */}
+          {ocrText && (
+            <div className="mx-5 mb-5 rounded-2xl bg-white/10 p-4 backdrop-blur">
+              <div className="mb-3 flex items-center gap-2 text-sm text-gray-100">
+                <Edit3 className="h-4 w-4" />
+                <span>読み取り結果（編集できます）</span>
+              </div>
+              <textarea
+                value={ocrText}
+                onChange={(e) => setOcrText(e.target.value)}
+                className="h-32 w-full resize-none rounded-xl border border-white/20 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-white/40"
+              />
+              <button
+                type="button"
+                onClick={handleProceed}
+                disabled={analyzing || !ocrText.trim()}
+                className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-white text-sm font-medium text-black shadow-lg transition hover:bg-gray-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-80"
+              >
+                {analyzing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    解析中...
+                  </>
+                ) : (
+                  <>
+                    次へ（解析へ）
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
             </div>
-            <textarea
-              value={ocrText}
-              onChange={(e) => setOcrText(e.target.value)}
-              className="h-32 w-full resize-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-gray-300"
-            />
-            <button
-              type="button"
-              onClick={handleProceed}
-              disabled={analyzing || !ocrText.trim()}
-              className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gray-900 text-sm font-medium text-white shadow-lg transition hover:bg-gray-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-80"
-            >
-              {analyzing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  解析中...
-                </>
-              ) : (
-                <>
-                  次へ（解析へ）
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </button>
-          </div>
-        )}
+          )}
 
-        {/* 下部コントロールエリア（ナビゲーションの上） */}
-        <div className="absolute inset-x-0 bottom-0 z-20 pb-20">
-          {/* グラデーションオーバーレイ */}
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
-          
-          {/* ボタン群 */}
-          <div className="relative flex items-center justify-center px-5">
-            {!captured ? (
-              /* シャッターボタン（丸い大きな白い枠の中にアイコン） */
+          {/* 下部ボタン群 */}
+          {!captured ? (
+            <div className="flex items-center justify-center">
               <button
                 type="button"
                 onClick={handleCapture}
-                className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-white/10 shadow-2xl backdrop-blur transition active:scale-95"
+                className="group flex h-16 w-16 items-center justify-center rounded-full bg-white text-black shadow-lg transition active:scale-95"
               >
-                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-gray-900">
-                  <Camera className="h-8 w-8" />
+                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black text-white transition group-active:scale-95">
+                  <Camera className="h-6 w-6" />
                 </span>
               </button>
-            ) : (
-              <div className="flex w-full max-w-md items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleRetake}
-                  className="flex h-14 flex-1 items-center justify-center gap-2 rounded-full border-2 border-white/50 bg-white/10 px-4 text-sm font-medium text-white backdrop-blur transition hover:bg-white/20 active:scale-95"
-                >
-                  <RefreshCcw className="h-5 w-5" />
-                  やり直す
-                </button>
-                <button
-                  type="button"
-                  onClick={handleOcr}
-                  disabled={ocrLoading}
-                  className="flex h-14 flex-1 items-center justify-center gap-2 rounded-full bg-white px-4 text-sm font-medium text-gray-900 shadow-lg transition hover:bg-gray-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-80"
-                >
-                  {ocrLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Camera className="h-5 w-5" />
-                      この画像で解析
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex w-full items-center justify-center gap-3 px-5">
+              <button
+                type="button"
+                onClick={handleRetake}
+                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 text-sm font-medium text-white backdrop-blur transition hover:bg-white/20 active:scale-95"
+              >
+                <RefreshCcw className="h-4 w-4" />
+                やり直す
+              </button>
+              <button
+                type="button"
+                onClick={handleOcr}
+                disabled={ocrLoading}
+                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-white px-4 text-sm font-medium text-black shadow-lg transition hover:bg-gray-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-80"
+              >
+                <Camera className="h-4 w-4" />
+                この画像で解析
+              </button>
+            </div>
+          )}
         </div>
       </div>
-
       <Navigation />
     </div>
   );
 }
-
