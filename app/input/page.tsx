@@ -97,7 +97,7 @@ export default function InputPage() {
     <div className="flex min-h-screen flex-col bg-white text-gray-900">
       <Header />
 
-      <main className="flex flex-1 flex-col px-5 py-6 pb-24">
+      <main className="flex flex-1 flex-col px-5 pt-20 py-6 pb-24">
         <div className="flex flex-1 flex-col">
           {/* 説明文 */}
           <div className="mb-4 text-center">

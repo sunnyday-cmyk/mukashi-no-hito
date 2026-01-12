@@ -165,10 +165,10 @@ export default function ScanPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-black text-white">
-      <Header />
+      {/* カメラ画面ではHeaderを非表示 */}
       
       {/* カメラプレビューエリア（ヘッダーとナビゲーションの間の全画面） */}
-      <div className="relative flex-1 overflow-hidden">
+      <div className="relative flex-1 overflow-hidden pt-0">
         {!captured ? (
           <video
             ref={videoRef}

@@ -128,7 +128,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-white text-gray-900">
       <Header />
-      <main className="flex flex-1 flex-col items-center px-6 pt-10 pb-24">
+      <main className="flex flex-1 flex-col items-center px-6 pt-24 pb-24">
         <header className="w-full max-w-md text-center">
           <p className="text-[11px] tracking-[0.35em] text-gray-400">
             古文解析アプリ

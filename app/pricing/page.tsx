@@ -73,13 +73,13 @@ function PricingContent() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-gray-900">
-      <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
         <div className="mx-auto flex h-14 max-w-2xl items-center px-5">
           <h1 className="text-base font-medium text-gray-900">料金プラン</h1>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-12 pb-24">
+      <main className="mx-auto w-full max-w-2xl flex-1 px-5 pt-20 py-12 pb-24">
         <div className="space-y-8">
           <div className="text-center">
             <h2 className="font-serif text-3xl font-medium text-gray-900">

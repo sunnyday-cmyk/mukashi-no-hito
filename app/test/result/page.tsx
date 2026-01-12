@@ -39,13 +39,13 @@ function TestResultContent() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-gray-900">
-      <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
         <div className="flex items-center gap-4 px-5 py-4">
           <h1 className="text-lg font-medium">テスト結果</h1>
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col px-5 py-6 pb-24">
+      <main className="flex flex-1 flex-col px-5 pt-20 py-6 pb-24">
         <div className="mx-auto w-full max-w-md space-y-6">
           {/* 結果サマリー */}
           <div className="rounded-2xl border-2 border-gray-200 bg-gray-50 p-8 text-center">
