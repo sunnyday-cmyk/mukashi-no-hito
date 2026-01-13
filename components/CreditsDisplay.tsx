@@ -41,8 +41,8 @@ export default function CreditsDisplay() {
             href="/pricing"
             className="flex items-center gap-1 rounded-full border-2 border-amber-400 bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-900 shadow-sm transition hover:bg-amber-100 active:scale-95 whitespace-nowrap"
           >
-            <span className="hidden sm:inline">無制限プランへ</span>
-            <span className="sm:hidden">プラン</span>
+            <span className="hidden md:inline">無制限プランへ</span>
+            <span className="md:hidden">プラン</span>
           </Link>
         </>
       )}
