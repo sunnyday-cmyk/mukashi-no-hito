@@ -199,7 +199,7 @@ export default function ScanPage() {
           {loading ? (
             <span className="text-[11px] text-white/70">起動中…</span>
           ) : (
-            <div className="w-11" /> {/* スペーサー */}
+            <div className="w-11" />
           )}
         </div>
       </div>
