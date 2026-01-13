@@ -195,7 +195,7 @@ export default function ScanPage() {
       <button
         type="button"
         onClick={() => router.push('/')}
-        className="absolute bottom-20 left-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50 active:scale-95 touch-manipulation safe-area-bottom"
+        className="fixed bottom-24 left-4 z-[60] flex h-12 w-12 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border-2 border-white/30 transition hover:bg-black/80 active:scale-95 touch-manipulation safe-area-bottom shadow-lg"
         aria-label="ホームに戻る"
       >
         <X className="h-6 w-6 text-white drop-shadow-lg" />
