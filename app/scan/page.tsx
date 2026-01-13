@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, RefreshCcw, Loader2, Edit3, ArrowRight } from "lucide-react";
+import { Camera, RefreshCcw, Loader2, Edit3, ArrowRight, X, Home } from "lucide-react";
 import Tesseract from "tesseract.js";
 import Navigation from "@/components/Navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -186,8 +186,21 @@ export default function ScanPage() {
       {/* 半透明ヘッダー（映像の上に浮かせる） */}
       <div className="absolute top-0 left-0 right-0 z-30 bg-black/40 backdrop-blur-sm safe-area-top">
         <div className="mx-auto flex h-14 max-w-md items-center justify-between gap-2 px-4">
+          {/* ホーム画面へ戻るボタン */}
+          <button
+            type="button"
+            onClick={() => router.push('/')}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50 active:scale-95 touch-manipulation"
+            aria-label="ホームに戻る"
+          >
+            <X className="h-6 w-6 text-white drop-shadow-lg" />
+          </button>
           <h1 className="text-base font-medium text-white flex-shrink-0">昔の人</h1>
-          {loading && <span className="text-[11px] text-white/70">起動中…</span>}
+          {loading ? (
+            <span className="text-[11px] text-white/70">起動中…</span>
+          ) : (
+            <div className="w-11" /> {/* スペーサー */}
+          )}
         </div>
       </div>
 
