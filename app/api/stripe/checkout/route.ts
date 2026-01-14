@@ -24,11 +24,11 @@ export async function POST(request: NextRequest) {
   try {
     // デバッグ: サーバー側の環境変数を確認
     const secretKey = process.env.STRIPE_SECRET_KEY;
-    const priceIdFromEnv = process.env.STRIPE_PRICE_ID;
+    const priceIdFromEnv = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID;
     console.log("=== Stripe Server-Side Debug ===");
     console.log("STRIPE_SECRET_KEY prefix:", secretKey?.substring(0, 7) || "undefined");
     console.log("STRIPE_SECRET_KEY length:", secretKey?.length || 0);
-    console.log("STRIPE_PRICE_ID:", priceIdFromEnv || "undefined");
+    console.log("NEXT_PUBLIC_STRIPE_PRICE_ID:", priceIdFromEnv || "undefined");
     console.log("================================");
 
     // 認証トークンを取得
@@ -71,10 +71,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 本番用価格IDを環境変数から取得
-    const priceId = process.env.STRIPE_PRICE_ID;
+    // 本番用価格IDを環境変数から取得（Vercel設定に合わせてNEXT_PUBLIC_プレフィックス使用）
+    const priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID;
     if (!priceId) {
-      console.error("STRIPE_PRICE_IDが環境変数に設定されていません");
+      console.error("NEXT_PUBLIC_STRIPE_PRICE_IDが環境変数に設定されていません");
       return NextResponse.json(
         { error: "決済システムの設定が完了していません" },
         { status: 500 }

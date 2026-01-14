@@ -16,7 +16,7 @@ ANTHROPIC_API_KEY=your_anthropic_api_key
 
 # Stripe (本番環境)
 STRIPE_SECRET_KEY=sk_live_your_production_secret_key
-STRIPE_PRICE_ID=price_1SpP0LPHP72H6VKu0r4uDFk5
+NEXT_PUBLIC_STRIPE_PRICE_ID=price_1SpP0LPHP72H6VKu0r4uDFk5
 ```
 
 ### 重要な注意事項
@@ -26,8 +26,9 @@ STRIPE_PRICE_ID=price_1SpP0LPHP72H6VKu0r4uDFk5
 - 本番用キーのみを使用し、テスト用キーは絶対に使用しないでください
 
 #### 2. Stripe価格ID
-- `STRIPE_PRICE_ID` には、Stripeダッシュボードで作成した本番用の価格IDを設定してください
+- `NEXT_PUBLIC_STRIPE_PRICE_ID` には、Stripeダッシュボードで作成した本番用の価格IDを設定してください
 - 現在の本番用価格ID: `price_1SpP0LPHP72H6VKu0r4uDFk5`（月額500円）
+- 注：本来サーバー側のみで使用する環境変数にNEXT_PUBLIC_プレフィックスは不要ですが、Vercel設定に合わせています
 
 #### 3. 環境変数の適用
 - 環境変数を追加・変更した後は、必ずデプロイを実行してください
@@ -89,14 +90,14 @@ STRIPE_PRICE_ID=price_1SpP0LPHP72H6VKu0r4uDFk5
 
 **対処法**:
 1. Stripeダッシュボードで価格IDを確認
-2. Vercelで `STRIPE_PRICE_ID` が正しく設定されているか確認
+2. Vercelで `NEXT_PUBLIC_STRIPE_PRICE_ID` が正しく設定されているか確認
 3. 価格が「有効」（アーカイブされていない）状態か確認
 
 ### ログの確認方法
 
 Vercelダッシュボード → プロジェクト → **Runtime Logs** で以下のエラーを確認:
 - `STRIPE_SECRET_KEYが環境変数に設定されていません`
-- `STRIPE_PRICE_IDが環境変数に設定されていません`
+- `NEXT_PUBLIC_STRIPE_PRICE_IDが環境変数に設定されていません`
 
 ## コードの確認ポイント
 
@@ -111,12 +112,12 @@ Vercelダッシュボード → プロジェクト → **Runtime Logs** で以�
 ### 主要ファイル
 - `app/api/stripe/checkout/route.ts`: Stripe決済セッション作成
   - 12行目: `process.env.STRIPE_SECRET_KEY` から読み込み
-  - 60行目: `process.env.STRIPE_PRICE_ID` から読み込み
+  - 75行目: `process.env.NEXT_PUBLIC_STRIPE_PRICE_ID` から読み込み
 
 ## 本番環境への完全移行チェックリスト
 
 - [ ] Vercelで `STRIPE_SECRET_KEY` を `sk_live_` で始まるキーに更新
-- [ ] Vercelで `STRIPE_PRICE_ID` を `price_1SpP0LPHP72H6VKu0r4uDFk5` に設定
+- [ ] Vercelで `NEXT_PUBLIC_STRIPE_PRICE_ID` を `price_1SpP0LPHP72H6VKu0r4uDFk5` に設定
 - [ ] Stripeダッシュボードで価格が「有効」になっていることを確認
 - [ ] Vercelでキャッシュクリアデプロイを実行
 - [ ] デプロイ完了後、決済画面から「TEST」ラベルが消えていることを確認
