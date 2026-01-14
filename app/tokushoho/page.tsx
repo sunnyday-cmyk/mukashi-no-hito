@@ -38,7 +38,7 @@ export default function TokushohoPage() {
                     所在地
                   </th>
                   <td className="px-4 py-3 text-sm text-gray-900">
-                    【請求により遅帯なく開示いたします。】
+                    【山口県山口市平井617豊島コーポラス105】
                   </td>
                 </tr>
                 <tr>
@@ -54,7 +54,7 @@ export default function TokushohoPage() {
                     電話番号
                   </th>
                   <td className="px-4 py-3 text-sm text-gray-900">
-                    【請求により遅帯なく開示いたします。】
+                    【09067071777】
                   </td>
                 </tr>
                 <tr>
