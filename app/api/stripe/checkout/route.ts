@@ -22,6 +22,15 @@ const stripe = new Stripe(stripeSecretKey, {
 
 export async function POST(request: NextRequest) {
   try {
+    // デバッグ: サーバー側の環境変数を確認
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    const priceIdFromEnv = process.env.STRIPE_PRICE_ID;
+    console.log("=== Stripe Server-Side Debug ===");
+    console.log("STRIPE_SECRET_KEY prefix:", secretKey?.substring(0, 7) || "undefined");
+    console.log("STRIPE_SECRET_KEY length:", secretKey?.length || 0);
+    console.log("STRIPE_PRICE_ID:", priceIdFromEnv || "undefined");
+    console.log("================================");
+
     // 認証トークンを取得
     const authHeader = request.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {

@@ -14,6 +14,15 @@ function PricingContent() {
   const [success, setSuccess] = useState(false);
   const [canceled, setCanceled] = useState(false);
 
+  // デバッグ: Stripe環境変数の確認
+  useEffect(() => {
+    const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+    console.log("=== Stripe Key Debug ===");
+    console.log("Stripe Key Check:", publishableKey?.substring(0, 7) || "undefined");
+    console.log("Full Key Length:", publishableKey?.length || 0);
+    console.log("========================");
+  }, []);
+
   useEffect(() => {
     if (searchParams.get("success") === "true") {
       setSuccess(true);
