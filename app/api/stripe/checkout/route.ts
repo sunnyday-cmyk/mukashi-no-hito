@@ -56,22 +56,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 本番用価格IDを環境変数から取得
+    const priceId = process.env.STRIPE_PRICE_ID;
+    if (!priceId) {
+      console.error("STRIPE_PRICE_IDが環境変数に設定されていません");
+      return NextResponse.json(
+        { error: "決済システムの設定が完了していません" },
+        { status: 500 }
+      );
+    }
+
     // Stripe Checkoutセッションを作成
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
         {
-          price_data: {
-            currency: "jpy",
-            product_data: {
-              name: "昔の人 プレミアムプラン",
-              description: "古文解析アプリ「昔の人」の月額サブスクリプション",
-            },
-            recurring: {
-              interval: "month",
-            },
-            unit_amount: 500, // 500円（税込）
-          },
+          price: priceId, // 本番用の価格ID（price_1SpP0LPHP72H6VKu0r4uDFk5）
           quantity: 1,
         },
       ],
