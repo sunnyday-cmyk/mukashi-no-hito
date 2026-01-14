@@ -1,0 +1,8 @@
+# robots.txt for 昔の人
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://mukashi-no-hito-4uir.vercel.app/sitemap.xml
+
