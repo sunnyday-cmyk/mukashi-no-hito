@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   authors: [{ name: "昔の人" }],
   creator: "昔の人",
   publisher: "昔の人",
+  verification: {
+    google: "nYnsReuq__-1a0mO_P929c66GJcTQhweDfBfVPwEUYI",
+  },
   robots: {
     index: true,
     follow: true,
