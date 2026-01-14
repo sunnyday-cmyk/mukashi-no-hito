@@ -9,7 +9,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Supabase環境変数が設定されていません");
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+// Stripe環境変数の確認（必須）
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+if (!stripeSecretKey) {
+  throw new Error("STRIPE_SECRET_KEY環境変数が設定されていません。本番用のsk_live_キーを設定してください。");
+}
+
+const stripe = new Stripe(stripeSecretKey, {
   apiVersion: "2024-12-18.acacia" as any,
   typescript: true,
 });
