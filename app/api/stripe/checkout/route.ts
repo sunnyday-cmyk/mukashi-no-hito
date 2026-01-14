@@ -22,14 +22,19 @@ const stripe = new Stripe(stripeSecretKey, {
 
 export async function POST(request: NextRequest) {
   try {
-    // デバッグ: サーバー側の環境変数を確認
-    const secretKey = process.env.STRIPE_SECRET_KEY;
-    const priceIdFromEnv = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID;
-    console.log("=== Stripe Server-Side Debug ===");
-    console.log("STRIPE_SECRET_KEY prefix:", secretKey?.substring(0, 7) || "undefined");
-    console.log("STRIPE_SECRET_KEY length:", secretKey?.length || 0);
-    console.log("NEXT_PUBLIC_STRIPE_PRICE_ID:", priceIdFromEnv || "undefined");
-    console.log("================================");
+    // デバッグ: サーバー側の環境変数を詳細確認
+    console.log("=== Stripe Environment Variables Debug ===");
+    console.log("STRIPE_SECRET_KEY:");
+    console.log("  - Exists:", !!process.env.STRIPE_SECRET_KEY);
+    console.log("  - Prefix:", process.env.STRIPE_SECRET_KEY?.substring(0, 7) || "undefined");
+    console.log("  - Length:", process.env.STRIPE_SECRET_KEY?.length || 0);
+    console.log("  - Type:", typeof process.env.STRIPE_SECRET_KEY);
+    console.log("NEXT_PUBLIC_STRIPE_PRICE_ID:");
+    console.log("  - Exists:", !!process.env.NEXT_PUBLIC_STRIPE_PRICE_ID);
+    console.log("  - Value:", process.env.NEXT_PUBLIC_STRIPE_PRICE_ID || "undefined");
+    console.log("  - Length:", process.env.NEXT_PUBLIC_STRIPE_PRICE_ID?.length || 0);
+    console.log("  - Type:", typeof process.env.NEXT_PUBLIC_STRIPE_PRICE_ID);
+    console.log("==========================================");
 
     // 認証トークンを取得
     const authHeader = request.headers.get("authorization");
@@ -74,12 +79,21 @@ export async function POST(request: NextRequest) {
     // 本番用価格IDを環境変数から取得（Vercel設定に合わせてNEXT_PUBLIC_プレフィックス使用）
     const priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID;
     if (!priceId) {
-      console.error("NEXT_PUBLIC_STRIPE_PRICE_IDが環境変数に設定されていません");
+      console.error("❌ NEXT_PUBLIC_STRIPE_PRICE_IDが環境変数に設定されていません");
+      console.error("Vercel設定を確認してください:");
+      console.error("  - 環境変数名: NEXT_PUBLIC_STRIPE_PRICE_ID");
+      console.error("  - 期待される値: price_1SpP0LPHP72H6VKu0r4uDFk5");
+      console.error("  - スコープ: Production");
       return NextResponse.json(
-        { error: "決済システムの設定が完了していません" },
+        { 
+          error: "決済システムの設定が完了していません", 
+          details: "NEXT_PUBLIC_STRIPE_PRICE_ID環境変数が未設定です"
+        },
         { status: 500 }
       );
     }
+    
+    console.log("✅ 価格ID読み込み成功:", priceId);
 
     // Stripe Checkoutセッションを作成
     const session = await stripe.checkout.sessions.create({

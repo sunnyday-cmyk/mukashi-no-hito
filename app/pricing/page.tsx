@@ -14,13 +14,21 @@ function PricingContent() {
   const [success, setSuccess] = useState(false);
   const [canceled, setCanceled] = useState(false);
 
-  // デバッグ: Stripe環境変数の確認
+  // デバッグ: Stripe環境変数の確認（クライアント側）
   useEffect(() => {
-    const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-    console.log("=== Stripe Key Debug ===");
-    console.log("Stripe Key Check:", publishableKey?.substring(0, 7) || "undefined");
-    console.log("Full Key Length:", publishableKey?.length || 0);
-    console.log("========================");
+    console.log("=== Stripe Client-Side Environment Variables ===");
+    console.log("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:");
+    console.log("  - Exists:", !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+    console.log("  - Prefix:", process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.substring(0, 7) || "undefined");
+    console.log("  - Length:", process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.length || 0);
+    console.log("NEXT_PUBLIC_STRIPE_PRICE_ID:");
+    console.log("  - Exists:", !!process.env.NEXT_PUBLIC_STRIPE_PRICE_ID);
+    console.log("  - Value:", process.env.NEXT_PUBLIC_STRIPE_PRICE_ID || "undefined");
+    console.log("  - Length:", process.env.NEXT_PUBLIC_STRIPE_PRICE_ID?.length || 0);
+    console.log("================================================");
+    
+    // 注：このプロジェクトはサーバー側のみでStripeを使用するため、
+    // NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEYは実際には不要です
   }, []);
 
   useEffect(() => {
