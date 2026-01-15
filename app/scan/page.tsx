@@ -163,7 +163,7 @@ export default function ScanPage() {
       // トリミングした画像を取得
       const croppedImageUrl = await getCroppedImg(captured, croppedAreaPixels);
       
-      // OCRを実行
+      // OCRを実行（Tesseract.jsの設定: jpn_vert+jpnで縦書きと横書きの両方に対応）
       setStatusText("文字を読み取っています...");
       const { data } = await Tesseract.recognize(croppedImageUrl, "jpn_vert+jpn", {
         logger: (m) => {
@@ -176,7 +176,16 @@ export default function ScanPage() {
           }
         },
       });
-      setOcrText(data.text.trim());
+      
+      // デバッグ: OCR直後の生テキストをコンソールに出力
+      const rawOcrText = data.text.trim();
+      console.log("=== OCR Raw Text Debug ===");
+      console.log("OCR生テキスト（長さ）:", rawOcrText.length);
+      console.log("OCR生テキスト（全文）:");
+      console.log(rawOcrText);
+      console.log("===========================");
+      
+      setOcrText(rawOcrText);
     } catch (e) {
       setError("文字の読み取りに失敗しました。やり直すか撮影し直してください。");
       setShowCrop(true); // エラー時はトリミング画面に戻る
@@ -210,13 +219,21 @@ export default function ScanPage() {
         return;
       }
 
+      // デバッグ: Claudeに送る直前のテキストをログ出力
+      const textToAnalyze = ocrText.trim();
+      console.log("=== Claude API Request (Client Side) ===");
+      console.log("送信するテキスト（長さ）:", textToAnalyze.length);
+      console.log("送信するテキスト（全文）:");
+      console.log(textToAnalyze);
+      console.log("=========================================");
+
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ text: ocrText.trim() }),
+        body: JSON.stringify({ text: textToAnalyze }),
       });
 
       if (!response.ok) {

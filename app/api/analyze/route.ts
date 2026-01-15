@@ -23,6 +23,7 @@ interface Word {
 }
 
 interface AnalysisResponse {
+  correctedText?: string; // 補正済みの本文（OCRノイズ補正後）
   words: Word[];
   translation: string; // 現代語訳
   explanation: string; // 文法的な重要ポイント
@@ -140,18 +141,31 @@ export async function POST(request: NextRequest) {
     // Anthropicクライアントの初期化
     const anthropic = getAnthropicClient();
 
-    const prompt = `あなたはプロの古文講師です。送られた古文を解析し、以下のJSON形式のみで返してください。
+    // デバッグ: Claudeに送る直前のプロンプトをログ出力
+    console.log("=== Claude API Request Debug ===");
+    console.log("Original text length:", text.length);
+    console.log("Original text preview:", text.substring(0, 100) + "...");
 
-【解析する古文】
+    const prompt = `あなたは日本の一流の古文講師です。入力されるテキストはブラウザ版OCR（Tesseract.js）で生成されたものであり、以下の特有のノイズが含まれる可能性があります。これらを文脈から【自動補正】した上で解析してください。
+
+**文字の形状による誤認補正**: 
+  例：「候」→「侯」、「自」→「目」、「けり」→「けり（一部欠損）」など、古文として不自然な漢字やかなを、正しい文法に基づき修正する。
+**縦書き特有の乱れの補完**: 
+  改行位置が不自然だったり、行の順番が微妙に入れ替わっている場合、意味が通る古文として再構築する。
+**不要なノイズの除去**: 
+  トリミングの端に残ったページ番号、ルビの一部、または記号などのゴミは無視し、古文の本文のみを抽出する。
+
+【解析する古文（OCR生データ）】
 ${text}
 
-【返却形式】
+【出力構成】
 以下のJSON形式で、解析結果を返してください。JSON以外のテキストは一切含めないでください。
 
 {
+  "correctedText": "補正済みの本文（読み取り結果の補正後）",
   "words": [
     {
-      "surface": "単語の表記",
+      "surface": "単語の表記（補正後の表記）",
       "partOfSpeech": "品詞（例: 名詞、動詞、助動詞、助詞など）",
       "conjugation": "活用形（例: 未然形、連用形、終止形など。該当しない場合は空文字列）",
       "meaning": "現代語での意味",
@@ -173,7 +187,13 @@ ${text}
 【注意事項】
 - JSON形式のみを返し、マークダウンやコードブロックは使用しないでください
 - 単語は文の順序通りに配列に格納してください
-- 色コードは上記のカテゴリに基づいて適切に割り当ててください`;
+- 色コードは上記のカテゴリに基づいて適切に割り当ててください
+- correctedTextフィールドには、OCRノイズを補正した後の正しい古文テキストを格納してください`;
+
+    // デバッグ: プロンプト全体をログ出力（開発環境のみ）
+    if (process.env.NODE_ENV === "development") {
+      console.log("Full prompt:", prompt);
+    }
 
     // Claude APIを呼び出し
     const message = await anthropic.messages.create({
@@ -227,11 +247,18 @@ ${text}
       typeof analysisResult.translation !== "string" ||
       typeof analysisResult.explanation !== "string"
     ) {
+      console.error("解析結果のバリデーションエラー:", analysisResult);
       return NextResponse.json(
         { error: "解析結果の形式が正しくありません" },
         { status: 500 }
       );
     }
+
+    // デバッグ: 解析結果の概要をログ出力
+    console.log("=== Claude API Response Debug ===");
+    console.log("Corrected text:", analysisResult.correctedText?.substring(0, 100) || "N/A");
+    console.log("Words count:", analysisResult.words?.length || 0);
+    console.log("Translation preview:", analysisResult.translation?.substring(0, 100) || "N/A");
 
     // ========== クレジット消費処理 ==========
     let updatedCredits = credits;
