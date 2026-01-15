@@ -39,3 +39,4 @@ class MukashiNoHitoDB extends Dexie {
 // データベースインスタンスをエクスポート
 export const db = new MukashiNoHitoDB();
 
+
