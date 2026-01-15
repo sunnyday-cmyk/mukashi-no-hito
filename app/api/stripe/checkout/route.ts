@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 
+// Supabase設定はビルド時に確認（NEXT_PUBLIC_変数はビルド時に埋め込まれる）
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
@@ -9,21 +10,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Supabase環境変数が設定されていません");
 }
 
-// Stripe環境変数の確認（必須）
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-if (!stripeSecretKey) {
-  throw new Error("STRIPE_SECRET_KEY環境変数が設定されていません。本番用のsk_live_キーを設定してください。");
-}
-
-const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: "2024-12-18.acacia" as any,
-  typescript: true,
-});
-
 export async function POST(request: NextRequest) {
   try {
-    // デバッグ: サーバー側の環境変数を詳細確認
-    console.log("=== Stripe Environment Variables Debug ===");
+    // ⚠️ 重要: Stripe環境変数は実行時（リクエストごと）に読み込む
+    // これにより、Vercelで環境変数を更新した際に最新の値が反映される
+    console.log("=== Stripe Environment Variables Debug (Runtime) ===");
     console.log("STRIPE_SECRET_KEY:");
     console.log("  - Exists:", !!process.env.STRIPE_SECRET_KEY);
     console.log("  - Prefix:", process.env.STRIPE_SECRET_KEY?.substring(0, 7) || "undefined");
@@ -34,7 +25,22 @@ export async function POST(request: NextRequest) {
     console.log("  - Value:", process.env.NEXT_PUBLIC_STRIPE_PRICE_ID || "undefined");
     console.log("  - Length:", process.env.NEXT_PUBLIC_STRIPE_PRICE_ID?.length || 0);
     console.log("  - Type:", typeof process.env.NEXT_PUBLIC_STRIPE_PRICE_ID);
-    console.log("==========================================");
+    console.log("====================================================");
+    
+    // 実行時にStripe環境変数を読み込み・検証
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecretKey) {
+      console.error("❌ STRIPE_SECRET_KEY環境変数が設定されていません");
+      throw new Error("STRIPE_SECRET_KEY環境変数が設定されていません。本番用のsk_live_キーを設定してください。");
+    }
+    
+    console.log("✅ Stripe Secret Key検証成功:", stripeSecretKey.substring(0, 7));
+    
+    // 実行時にStripeクライアントを初期化（キャッシュの影響を受けない）
+    const stripe = new Stripe(stripeSecretKey, {
+      apiVersion: "2024-12-18.acacia" as any,
+      typescript: true,
+    });
 
     // 認証トークンを取得
     const authHeader = request.headers.get("authorization");
