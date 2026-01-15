@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Camera, RefreshCcw, Loader2, Edit3, ArrowRight, X, Home } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Camera, RefreshCcw, Loader2, Edit3, ArrowRight, X, Home, Crop } from "lucide-react";
 import Tesseract from "tesseract.js";
+import Cropper from "react-easy-crop";
+import "react-easy-crop/react-easy-crop.css";
 import Navigation from "@/components/Navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { useProfile } from "@/hooks/useProfile";
+import type { Area } from "react-easy-crop";
 
 export default function ScanPage() {
   const router = useRouter();
@@ -19,6 +22,12 @@ export default function ScanPage() {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [statusText, setStatusText] = useState("文字を読み取っています...");
   const { refetch: refetchProfile } = useProfile();
+  
+  // トリミング関連の状態
+  const [showCrop, setShowCrop] = useState(false);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
   useEffect(() => {
     const startCamera = async () => {
@@ -66,6 +75,9 @@ export default function ScanPage() {
     const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
     setCaptured(dataUrl);
     setOcrText("");
+    setShowCrop(true); // トリミング画面を表示
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
     video.pause();
   };
 
@@ -73,16 +85,87 @@ export default function ScanPage() {
     setCaptured(null);
     setOcrText("");
     setError(null);
+    setShowCrop(false);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
     videoRef.current?.play();
   };
+  
+  // トリミング完了時のコールバック
+  const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+  
+  // トリミングした画像を取得する関数
+  const getCroppedImg = async (imageSrc: string, pixelCrop: Area): Promise<string> => {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    
+    if (!ctx) {
+      throw new Error("Canvas context not available");
+    }
+    
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+    
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      pixelCrop.width,
+      pixelCrop.height
+    );
+    
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Canvas is empty"));
+            return;
+          }
+          const reader = new FileReader();
+          reader.addEventListener("load", () => resolve(reader.result as string));
+          reader.addEventListener("error", (error) => reject(error));
+          reader.readAsDataURL(blob);
+        },
+        "image/jpeg",
+        0.9
+      );
+    });
+  };
+  
+  // 画像を読み込むヘルパー関数
+  const createImage = (url: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.addEventListener("load", () => resolve(image));
+      image.addEventListener("error", (error) => reject(error));
+      image.src = url;
+    });
+  };
 
-  const handleOcr = async () => {
-    if (!captured) return;
+  // トリミング画面からOCRを実行
+  const handleCropAndOcr = async () => {
+    if (!captured || !croppedAreaPixels) return;
+    
     setOcrLoading(true);
-    setStatusText("文字を読み取っています...");
+    setStatusText("画像を切り出しています...");
     setError(null);
+    setShowCrop(false);
+    
     try {
-      const { data } = await Tesseract.recognize(captured, "jpn_vert+jpn", {
+      // トリミングした画像を取得
+      const croppedImageUrl = await getCroppedImg(captured, croppedAreaPixels);
+      
+      // OCRを実行
+      setStatusText("文字を読み取っています...");
+      const { data } = await Tesseract.recognize(croppedImageUrl, "jpn_vert+jpn", {
         logger: (m) => {
           if (m.status === "recognizing text") {
             setStatusText("文字を読み取っています...");
@@ -96,6 +179,7 @@ export default function ScanPage() {
       setOcrText(data.text.trim());
     } catch (e) {
       setError("文字の読み取りに失敗しました。やり直すか撮影し直してください。");
+      setShowCrop(true); // エラー時はトリミング画面に戻る
     } finally {
       setOcrLoading(false);
     }
@@ -174,6 +258,28 @@ export default function ScanPage() {
             playsInline
             muted
           />
+        ) : showCrop ? (
+          // トリミング画面
+          <div className="relative h-full w-full bg-black">
+            <Cropper
+              image={captured}
+              crop={crop}
+              zoom={zoom}
+              aspect={2 / 3} // 縦長の比率（2:3）
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={onCropComplete}
+              cropShape="rect"
+              showGrid={true}
+              style={{
+                containerStyle: {
+                  width: "100%",
+                  height: "100%",
+                  position: "relative",
+                },
+              }}
+            />
+          </div>
         ) : (
           <img
             src={captured}
@@ -269,8 +375,80 @@ export default function ScanPage() {
         </div>
       )}
 
-      {/* 撮影後のボタン群 */}
-      {captured && !ocrText && (
+      {/* トリミング画面の操作ガイドとボタン */}
+      {captured && showCrop && (
+        <>
+          {/* 操作ガイド（上部） */}
+          <div className="absolute top-20 left-0 right-0 z-40 px-4">
+            <div className="mx-auto max-w-md rounded-xl bg-black/70 px-4 py-3 backdrop-blur-sm">
+              <div className="flex items-start gap-3">
+                <Crop className="h-5 w-5 flex-shrink-0 text-white mt-0.5" />
+                <div className="flex-1 text-sm text-white">
+                  <p className="font-medium mb-1">解析範囲を選択</p>
+                  <p className="text-xs text-white/80">
+                    ピンチで拡大縮小、ドラッグで位置調整ができます。縦長の古文に合わせて範囲を選択してください。
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* ズームコントロール（中央右側） */}
+          <div className="absolute right-4 top-1/2 z-40 -translate-y-1/2">
+            <div className="flex flex-col items-center gap-2 rounded-full bg-black/70 p-2 backdrop-blur-sm">
+              <button
+                type="button"
+                onClick={() => setZoom((prev) => Math.min(prev + 0.1, 3))}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 active:scale-95"
+                aria-label="拡大"
+              >
+                +
+              </button>
+              <div className="h-16 w-0.5 bg-white/30" />
+              <button
+                type="button"
+                onClick={() => setZoom((prev) => Math.max(prev - 0.1, 1))}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 active:scale-95"
+                aria-label="縮小"
+              >
+                −
+              </button>
+            </div>
+          </div>
+          
+          {/* ボタン群（下部） */}
+          <div className="absolute bottom-0 left-0 right-0 z-40 bg-black/70 backdrop-blur-sm px-5 py-4 safe-area-bottom">
+            <div className="flex w-full items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleRetake}
+                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full border-2 border-white/50 bg-white/10 px-4 text-sm font-medium text-white backdrop-blur transition hover:bg-white/20 active:scale-95"
+              >
+                <RefreshCcw className="h-5 w-5" />
+                やり直す
+              </button>
+              <button
+                type="button"
+                onClick={handleCropAndOcr}
+                disabled={ocrLoading || !croppedAreaPixels}
+                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-white px-4 text-sm font-medium text-gray-900 shadow-lg transition hover:bg-gray-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-80"
+              >
+                {ocrLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    <Crop className="h-5 w-5" />
+                    この範囲を解析
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+      
+      {/* 撮影後のボタン群（トリミング画面を閉じた後、OCR結果がない場合） */}
+      {captured && !showCrop && !ocrText && (
         <div className="absolute bottom-0 left-0 right-0 z-30 bg-black/50 backdrop-blur-sm px-5 py-4 safe-area-bottom">
           <div className="flex w-full items-center justify-center gap-3">
             <button
@@ -283,18 +461,11 @@ export default function ScanPage() {
             </button>
             <button
               type="button"
-              onClick={handleOcr}
-              disabled={ocrLoading}
-              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-white px-4 text-sm font-medium text-gray-900 shadow-lg transition hover:bg-gray-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-80"
+              onClick={() => setShowCrop(true)}
+              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-white px-4 text-sm font-medium text-gray-900 shadow-lg transition hover:bg-gray-100 active:scale-95"
             >
-              {ocrLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <>
-                  <Camera className="h-5 w-5" />
-                  この画像で解析
-                </>
-              )}
+              <Crop className="h-5 w-5" />
+              範囲を選択
             </button>
           </div>
         </div>
