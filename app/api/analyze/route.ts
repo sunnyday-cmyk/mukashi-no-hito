@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     console.log("Original text length:", text.length);
     console.log("Original text preview:", text.substring(0, 100) + "...");
 
-    const prompt = `あなたは日本の一流の古文講師です。入力されるテキストはブラウザ版OCR（Tesseract.js）で生成されたものであり、以下の特有のノイズが含まれる可能性があります。これらを文脈から【自動補正】した上で解析してください。
+    const prompt = `あなたは日本の一流の古文講師です。入力されるテキストはGoogle Cloud Vision APIで生成されたものであり、以下の特有のノイズが含まれる可能性があります。これらを文脈から【自動補正】した上で解析してください。
 
 **文字の形状による誤認補正**: 
   例：「候」→「侯」、「自」→「目」、「けり」→「けり（一部欠損）」など、古文として不自然な漢字やかなを、正しい文法に基づき修正する。

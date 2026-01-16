@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Camera, RefreshCcw, Loader2, Edit3, ArrowRight, X, Home, Crop } from "lucide-react";
-import Tesseract from "tesseract.js";
 import Cropper from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
 import Navigation from "@/components/Navigation";
@@ -150,7 +149,7 @@ export default function ScanPage() {
     });
   };
 
-  // トリミング画面からOCRを実行
+  // トリミング画面からOCRを実行（Google Cloud Vision API使用）
   const handleCropAndOcr = async () => {
     if (!captured || !croppedAreaPixels) return;
     
@@ -163,31 +162,48 @@ export default function ScanPage() {
       // トリミングした画像を取得
       const croppedImageUrl = await getCroppedImg(captured, croppedAreaPixels);
       
-      // OCRを実行（Tesseract.jsの設定: jpn_vert+jpnで縦書きと横書きの両方に対応）
+      // Google Cloud Vision APIに送信
       setStatusText("文字を読み取っています...");
-      const { data } = await Tesseract.recognize(croppedImageUrl, "jpn_vert+jpn", {
-        logger: (m) => {
-          if (m.status === "recognizing text") {
-            setStatusText("文字を読み取っています...");
-          } else if (m.status === "loading tesseract core") {
-            setStatusText("OCRエンジンを読み込み中...");
-          } else if (m.status === "initializing api") {
-            setStatusText("日本語縦書きモデルを準備しています...");
-          }
+      
+      const response = await fetch("/api/ocr", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          imageData: croppedImageUrl, // Base64形式の画像データ
+        }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "OCR処理に失敗しました");
+      }
+
+      const result = await response.json();
       
       // デバッグ: OCR直後の生テキストをコンソールに出力
-      const rawOcrText = data.text.trim();
-      console.log("=== OCR Raw Text Debug ===");
+      const rawOcrText = result.text || "";
+      console.log("=== Google Vision API OCR Raw Text Debug ===");
       console.log("OCR生テキスト（長さ）:", rawOcrText.length);
       console.log("OCR生テキスト（全文）:");
       console.log(rawOcrText);
-      console.log("===========================");
+      console.log("============================================");
+      
+      if (!rawOcrText) {
+        setError("テキストが検出されませんでした。範囲を調整して再度お試しください。");
+        setShowCrop(true); // エラー時はトリミング画面に戻る
+        return;
+      }
       
       setOcrText(rawOcrText);
     } catch (e) {
-      setError("文字の読み取りに失敗しました。やり直すか撮影し直してください。");
+      console.error("OCR処理エラー:", e);
+      setError(
+        e instanceof Error
+          ? e.message
+          : "文字の読み取りに失敗しました。やり直すか撮影し直してください。"
+      );
       setShowCrop(true); // エラー時はトリミング画面に戻る
     } finally {
       setOcrLoading(false);

@@ -68,7 +68,7 @@ npm run dev
 - **言語**: TypeScript
 - **スタイリング**: Tailwind CSS
 - **データベース**: Dexie.js (IndexedDB)
-- **OCR**: Tesseract.js
+- **OCR**: Google Cloud Vision API
 - **AI解析**: Anthropic Claude API
 - **PWA**: Service Worker + Web App Manifest
 
