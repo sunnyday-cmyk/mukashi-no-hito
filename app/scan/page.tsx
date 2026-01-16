@@ -93,12 +93,20 @@ export default function ScanPage() {
   
   // トリミング完了時のコールバック
   const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
+    console.log("=== トリミング範囲更新 ===");
+    console.log("相対座標:", croppedArea);
+    console.log("ピクセル座標:", croppedAreaPixels);
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
   
   // トリミングした画像を取得する関数
   const getCroppedImg = async (imageSrc: string, pixelCrop: Area): Promise<string> => {
+    console.log("=== トリミング処理開始 ===");
+    console.log("トリミング範囲（ピクセル）:", pixelCrop);
+    
     const image = await createImage(imageSrc);
+    console.log("元画像サイズ:", image.width, "x", image.height);
+    
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     
@@ -106,9 +114,13 @@ export default function ScanPage() {
       throw new Error("Canvas context not available");
     }
     
+    // react-easy-cropのcroppedAreaPixelsは既に元画像のピクセル座標なので、そのまま使用
     canvas.width = pixelCrop.width;
     canvas.height = pixelCrop.height;
     
+    console.log("Canvasサイズ:", canvas.width, "x", canvas.height);
+    
+    // 元画像から指定範囲を切り出してCanvasに描画
     ctx.drawImage(
       image,
       pixelCrop.x,
@@ -121,6 +133,8 @@ export default function ScanPage() {
       pixelCrop.height
     );
     
+    console.log("Canvas描画完了");
+    
     return new Promise((resolve, reject) => {
       canvas.toBlob(
         (blob) => {
@@ -128,8 +142,14 @@ export default function ScanPage() {
             reject(new Error("Canvas is empty"));
             return;
           }
+          console.log("Blob生成完了 - サイズ:", blob.size, "bytes");
           const reader = new FileReader();
-          reader.addEventListener("load", () => resolve(reader.result as string));
+          reader.addEventListener("load", () => {
+            const result = reader.result as string;
+            console.log("Base64変換完了 - 長さ:", result.length);
+            console.log("=== トリミング処理完了 ===");
+            resolve(result);
+          });
           reader.addEventListener("error", (error) => reject(error));
           reader.readAsDataURL(blob);
         },
@@ -151,7 +171,11 @@ export default function ScanPage() {
 
   // トリミング画面からOCRを実行（Google Cloud Vision API使用）
   const handleCropAndOcr = async () => {
-    if (!captured || !croppedAreaPixels) return;
+    if (!captured || !croppedAreaPixels) {
+      console.error("トリミングデータが不足しています:", { captured: !!captured, croppedAreaPixels });
+      setError("トリミング範囲が設定されていません。");
+      return;
+    }
     
     setOcrLoading(true);
     setStatusText("画像を切り出しています...");
@@ -160,7 +184,14 @@ export default function ScanPage() {
     
     try {
       // トリミングした画像を取得
+      console.log("=== OCR処理開始 ===");
+      console.log("トリミング範囲:", croppedAreaPixels);
       const croppedImageUrl = await getCroppedImg(captured, croppedAreaPixels);
+      
+      // デバッグ: トリミング後の画像データを確認
+      console.log("=== トリミング後の画像データ ===");
+      console.log("Base64データ長:", croppedImageUrl.length);
+      console.log("Base64プレビュー:", croppedImageUrl.substring(0, 100) + "...");
       
       // Google Cloud Vision APIに送信
       setStatusText("文字を読み取っています...");
@@ -171,7 +202,7 @@ export default function ScanPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          imageData: croppedImageUrl, // Base64形式の画像データ
+          imageData: croppedImageUrl, // トリミング済みのBase64形式の画像データ
         }),
       });
 

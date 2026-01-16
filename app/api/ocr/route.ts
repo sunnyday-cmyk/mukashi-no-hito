@@ -35,6 +35,12 @@ export async function POST(request: NextRequest) {
     // Base64データの前処理（data:image/jpeg;base64, などのプレフィックスを除去）
     const base64Image = imageData.replace(/^data:image\/[a-z]+;base64,/, "");
 
+    // デバッグ: 受信した画像データの情報をログ出力
+    console.log("=== Google Vision API Request Debug ===");
+    console.log("Base64データ長:", base64Image.length);
+    console.log("元のimageData長:", imageData.length);
+    console.log("Base64プレフィックス:", imageData.substring(0, 30));
+
     // Google Cloud Vision APIにリクエスト
     const visionApiUrl = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`;
 
@@ -92,10 +98,13 @@ export async function POST(request: NextRequest) {
     const detectedText =
       result.responses[0].fullTextAnnotation.text || "";
 
-    // デバッグ: OCR結果をログ出力
+    // デバッグ: OCR結果を詳細にログ出力
     console.log("=== Google Vision API OCR Result ===");
     console.log("Detected text length:", detectedText.length);
-    console.log("Detected text preview:", detectedText.substring(0, 100));
+    console.log("Detected text (全文):");
+    console.log(detectedText);
+    console.log("Detected text preview (最初の200文字):", detectedText.substring(0, 200));
+    console.log("=====================================");
 
     return NextResponse.json({
       text: detectedText.trim(),
