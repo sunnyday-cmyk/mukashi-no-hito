@@ -99,7 +99,7 @@ export default function ScanPage() {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
   
-  // トリミングした画像を取得する関数
+  // トリミングした画像を取得する関数（選択範囲だけをCanvasで切り出し）
   const getCroppedImg = async (imageSrc: string, pixelCrop: Area): Promise<string> => {
     console.log("=== トリミング処理開始 ===");
     console.log("トリミング範囲（ピクセル）:", pixelCrop);
@@ -135,28 +135,12 @@ export default function ScanPage() {
     
     console.log("Canvas描画完了");
     
-    return new Promise((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            reject(new Error("Canvas is empty"));
-            return;
-          }
-          console.log("Blob生成完了 - サイズ:", blob.size, "bytes");
-          const reader = new FileReader();
-          reader.addEventListener("load", () => {
-            const result = reader.result as string;
-            console.log("Base64変換完了 - 長さ:", result.length);
-            console.log("=== トリミング処理完了 ===");
-            resolve(result);
-          });
-          reader.addEventListener("error", (error) => reject(error));
-          reader.readAsDataURL(blob);
-        },
-        "image/jpeg",
-        0.9
-      );
-    });
+    // toDataURLを使用して高画質（0.9）でBase64化
+    const base64DataUrl = canvas.toDataURL("image/jpeg", 0.9);
+    console.log("Base64変換完了 - 長さ:", base64DataUrl.length);
+    console.log("=== トリミング処理完了 ===");
+    
+    return base64DataUrl;
   };
   
   // 画像を読み込むヘルパー関数
@@ -188,13 +172,14 @@ export default function ScanPage() {
       console.log("トリミング範囲:", croppedAreaPixels);
       const croppedImageUrl = await getCroppedImg(captured, croppedAreaPixels);
       
-      // デバッグ: トリミング後の画像データを確認
+      // デバッグ: トリミング後の画像データを確認（スマホテスト用）
       console.log("=== トリミング後の画像データ ===");
       console.log("Base64データ長:", croppedImageUrl.length);
+      console.log("Base64最初の50文字:", croppedImageUrl.substring(0, 50));
       console.log("Base64プレビュー:", croppedImageUrl.substring(0, 100) + "...");
       
       // Google Cloud Vision APIに送信
-      setStatusText("文字を読み取っています...");
+      setStatusText("現在OCR処理中...");
       
       const response = await fetch("/api/ocr", {
         method: "POST",
@@ -213,7 +198,7 @@ export default function ScanPage() {
 
       const result = await response.json();
       
-      // デバッグ: OCR直後の生テキストをコンソールに出力
+      // デバッグ: OCR直後の生テキストをコンソールに出力（解析用テキストエリアに表示する前に出力）
       const rawOcrText = result.text || "";
       console.log("=== Google Vision API OCR Raw Text Debug ===");
       console.log("OCR生テキスト（長さ）:", rawOcrText.length);
@@ -227,6 +212,7 @@ export default function ScanPage() {
         return;
       }
       
+      // 解析用テキストエリアに表示
       setOcrText(rawOcrText);
     } catch (e) {
       console.error("OCR処理エラー:", e);

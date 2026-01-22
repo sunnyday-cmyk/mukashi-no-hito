@@ -5,9 +5,13 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 
 export const metadata: Metadata = {
-  title: "昔の人 - スマホで古文を解析・現代語訳するアプリ",
-  description: "カメラで古文を撮影するだけで、AIが瞬時に現代語訳と単語解説を行います。受験勉強や読書に最適な古文解析ツールです。",
-  keywords: ["古文", "現代語訳", "品詞分解", "古典", "受験", "学習アプリ", "AI", "OCR", "古文解析"],
+  title: {
+    template: "%s | 昔の人",
+    default: "昔の人｜AI古文解析・現代語訳カメラ",
+  },
+  description: "カメラで撮るだけで古文を現代語訳。教科書や古文書のくずし字もAIが瞬時に解読し、意味や背景を分かりやすく解説する学習アプリです。",
+  applicationName: "昔の人", // 検索結果のサイト名に使われる
+  keywords: ["古文", "現代語訳", "古文 カメラ 翻訳", "古文 現代語訳 AI", "AI古文解読", "古文解析", "品詞分解", "古典", "受験", "学習アプリ", "AI", "OCR", "カメラ翻訳", "古文アプリ"],
   authors: [{ name: "昔の人" }],
   creator: "昔の人",
   publisher: "昔の人",
@@ -23,17 +27,17 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
+    siteName: "昔の人", // SNSなどで使われる
     type: "website",
     locale: "ja_JP",
     url: "https://mukashi-no-hito-4uir.vercel.app/",
-    siteName: "昔の人",
-    title: "昔の人 - スマホで古文を解析・現代語訳するアプリ",
-    description: "カメラで古文を撮影するだけで、AIが瞬時に現代語訳と単語解説を行います。受験勉強や読書に最適な古文解析ツールです。",
+    title: "昔の人｜AI古文解析・現代語訳カメラ",
+    description: "カメラで撮るだけで古文を現代語訳。教科書や古文書のくずし字もAIが瞬時に解読し、意味や背景を分かりやすく解説する学習アプリです。",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "昔の人 - スマホで古文を解析・現代語訳するアプリ",
-    description: "カメラで古文を撮影するだけで、AIが瞬時に現代語訳と単語解説を行います。",
+    card: "summary",
+    title: "昔の人｜AI古文解析",
+    description: "カメラで撮るだけで古文を現代語訳。AIが瞬時に解読し、意味や背景を分かりやすく解説する学習アプリです。",
   },
   alternates: {
     canonical: "https://mukashi-no-hito-4uir.vercel.app/",
@@ -47,9 +51,7 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-  icons: {
-    apple: "/icon-192x192.png",
-  },
+  // iconsプロパティは削除（app/icon.pngが自動認識されるため）
   other: {
     "mobile-web-app-capable": "yes",
     "apple-mobile-web-app-capable": "yes",

@@ -35,10 +35,11 @@ export async function POST(request: NextRequest) {
     // Base64データの前処理（data:image/jpeg;base64, などのプレフィックスを除去）
     const base64Image = imageData.replace(/^data:image\/[a-z]+;base64,/, "");
 
-    // デバッグ: 受信した画像データの情報をログ出力
+    // デバッグ: 受信した画像データの情報をログ出力（スマホテスト用）
     console.log("=== Google Vision API Request Debug ===");
     console.log("Base64データ長:", base64Image.length);
     console.log("元のimageData長:", imageData.length);
+    console.log("Base64最初の50文字:", base64Image.substring(0, 50));
     console.log("Base64プレフィックス:", imageData.substring(0, 30));
 
     // Google Cloud Vision APIにリクエスト
