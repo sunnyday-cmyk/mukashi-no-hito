@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Navigation from "@/components/Navigation";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { supabase } from "@/lib/supabaseClient";
+import { db } from "@/lib/db";
 import { useProfile } from "@/hooks/useProfile";
 
 export default function InputPage() {
@@ -69,6 +70,19 @@ export default function InputPage() {
 
       // クレジット情報を更新（解析が完了したため）
       await refetchProfile();
+
+      // 履歴に保存
+      try {
+        await db.history.add({
+          originalText: text.trim(),
+          translation: result.translation || "",
+          resultJson: JSON.stringify(result),
+          createdAt: new Date(),
+        });
+      } catch (historyError) {
+        console.error("履歴の保存に失敗しました:", historyError);
+        // 履歴保存に失敗しても解析結果は表示する
+      }
 
       // 解析結果をクエリパラメータとして結果画面に渡す
       const params = new URLSearchParams({
