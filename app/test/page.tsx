@@ -5,7 +5,7 @@ import { Play, BookOpen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Navigation from "@/components/Navigation";
 
-type TestMode = "meaning" | "partOfSpeech" | "conjugation";
+type TestMode = "meaning" | "partOfSpeech" | "inflectionForm";
 type QuestionCount = 10 | 20 | 30;
 
 export default function TestPage() {
@@ -82,9 +82,9 @@ export default function TestPage() {
               </button>
 
               <button
-                onClick={() => setTestMode("conjugation")}
+                onClick={() => setTestMode("inflectionForm")}
                 className={`w-full rounded-xl border-2 px-4 py-4 text-left transition ${
-                  testMode === "conjugation"
+                  testMode === "inflectionForm"
                     ? "border-gray-900 bg-gray-50"
                     : "border-gray-200 bg-white hover:border-gray-300"
                 }`}
@@ -96,7 +96,7 @@ export default function TestPage() {
                       単語を見て、活用形を選択
                     </p>
                   </div>
-                  {testMode === "conjugation" && (
+                  {testMode === "inflectionForm" && (
                     <div className="h-5 w-5 rounded-full bg-gray-900"></div>
                   )}
                 </div>

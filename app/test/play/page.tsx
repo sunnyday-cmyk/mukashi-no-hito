@@ -6,7 +6,7 @@ import { db, WordbookItem } from "@/lib/db";
 import Navigation from "@/components/Navigation";
 import { Loader2 } from "lucide-react";
 
-type TestMode = "meaning" | "partOfSpeech" | "conjugation";
+type TestMode = "meaning" | "partOfSpeech" | "inflectionForm";
 
 interface Question {
   word: WordbookItem;
@@ -94,13 +94,13 @@ function TestPlayContent() {
           () => Math.random() - 0.5
         );
       } else {
-        // conjugation
-        correctAnswer = word.conjugation || "なし";
+        // inflectionForm (活用形)
+        correctAnswer = word.inflectionForm || "なし";
         const otherConj = Array.from(
           new Set(
             words
-              .filter((w) => w.id !== word.id && w.conjugation)
-              .map((w) => w.conjugation || "なし")
+              .filter((w) => w.id !== word.id && w.inflectionForm)
+              .map((w) => w.inflectionForm || "なし")
           )
         ).filter((c) => c !== correctAnswer);
         const shuffledConj = [...otherConj]

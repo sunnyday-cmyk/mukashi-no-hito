@@ -112,14 +112,19 @@ function TestResultContent() {
                           </span>
                           <div className="flex-1">
                             <div className="mb-1 flex items-center gap-2">
+                              {word.reading && (
+                                <span className="text-xs text-gray-500">
+                                  {word.reading}
+                                </span>
+                              )}
                               <span className="text-xs font-medium text-gray-600">
                                 {word.partOfSpeech}
                               </span>
-                              {word.conjugation && (
+                              {word.inflectionForm && (
                                 <>
                                   <span className="text-gray-300">・</span>
                                   <span className="text-xs text-gray-500">
-                                    {word.conjugation}
+                                    {word.inflectionForm}
                                   </span>
                                 </>
                               )}
