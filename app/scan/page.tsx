@@ -5,6 +5,7 @@ import { Camera, RefreshCcw, Loader2, Edit3, ArrowRight, X, Home, Crop } from "l
 import Cropper from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
 import Navigation from "@/components/Navigation";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { useProfile } from "@/hooks/useProfile";
@@ -295,6 +296,11 @@ export default function ScanPage() {
       setAnalyzing(false);
     }
   };
+
+  // 解析中は和風ローディング画面を表示
+  if (analyzing) {
+    return <LoadingSpinner message="古文を解析しています..." />;
+  }
 
   return (
     <div className="fixed inset-0 bg-black">

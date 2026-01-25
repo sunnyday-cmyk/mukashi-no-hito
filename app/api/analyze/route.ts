@@ -16,14 +16,18 @@ const getAnthropicClient = () => {
 // レスポンスの型定義
 interface Word {
   surface: string; // 表記
-  partOfSpeech: string; // 品詞
-  conjugation: string; // 活用形
-  meaning: string; // 意味
-  colorCode: string; // 色コード（例: "#FF6B6B"）
+  reading: string; // 読み（ひらがな）
+  partOfSpeech: string; // 品詞（名詞、動詞、助動詞、助詞、形容詞、形容動詞など）
+  inflectionType: string; // 活用の種類（四段、上一段、上二段、下一段、下二段、ラ変、ナ変、サ変、カ変など。該当なしは空文字列）
+  inflectionForm: string; // 活用形（未然形、連用形、終止形、連体形、已然形、命令形。該当なしは空文字列）
+  meaning: string; // 現代語での意味
+  auxiliaryMeaning: string; // 助動詞の場合の意味（過去、完了、推量、意志、打消、受身、使役、尊敬、謙譲など。該当なしは空文字列）
+  grammarNote: string; // 入試で問われる重要文法ポイント（係り結び、敬語、識別問題など。なければ空文字列）
+  colorCode: string; // 色コード
 }
 
 interface AnalysisResponse {
-  correctedText?: string; // 補正済みの本文（OCRノイズ補正後）
+  correctedText: string; // 補正済みの本文（OCRノイズ補正後、必須）
   words: Word[];
   translation: string; // 現代語訳
   explanation: string; // 文法的な重要ポイント
@@ -146,29 +150,42 @@ export async function POST(request: NextRequest) {
     console.log("Original text length:", text.length);
     console.log("Original text preview:", text.substring(0, 100) + "...");
 
-    const prompt = `あなたは日本の一流の古文講師です。入力されるテキストはGoogle Cloud Vision APIで生成されたものであり、以下の特有のノイズが含まれる可能性があります。これらを文脈から【自動補正】した上で解析してください。
+    const prompt = `あなたは大学入試の古文を専門とする一流の予備校講師です。以下の古文テキストを**全文漏らさず**解析してください。
 
-**文字の形状による誤認補正**: 
-  例：「候」→「侯」、「自」→「目」、「けり」→「けり（一部欠損）」など、古文として不自然な漢字やかなを、正しい文法に基づき修正する。
-**縦書き特有の乱れの補完**: 
-  改行位置が不自然だったり、行の順番が微妙に入れ替わっている場合、意味が通る古文として再構築する。
-**不要なノイズの除去**: 
-  トリミングの端に残ったページ番号、ルビの一部、または記号などのゴミは無視し、古文の本文のみを抽出する。
+【重要】OCRノイズの自動補正
+入力テキストはGoogle Cloud Vision APIで生成されたものであり、以下のノイズが含まれる可能性があります：
+- 文字の形状による誤認（例：「候」→「侯」、「自」→「目」）
+- 縦書き特有の改行位置の乱れや行の順番の入れ替わり
+- ページ番号、ルビの一部、記号などの不要なノイズ
+
+これらを文脈から判断し、正しい古文として補正してください。
 
 【解析する古文（OCR生データ）】
 ${text}
 
+【解析の必須要件】
+1. **全文解析の徹底**: 入力された古文を**最初から最後まで一文字も漏らさず**解析してください。最初の一文だけで終わらせないでください。
+2. **大学入試レベルの文法解析**: 各単語について以下を明記してください：
+   - 動詞・形容詞・形容動詞: 活用の種類（四段・上一段・上二段・下一段・下二段・ラ変・ナ変・サ変・カ変・ク活用・シク活用・ナリ活用・タリ活用）と活用形（未然形・連用形・終止形・連体形・已然形・命令形）
+   - 助動詞: 意味（過去・完了・推量・意志・打消・受身・使役・尊敬・謙譲・自発・可能など）と活用形
+   - 助詞: 種類（格助詞・接続助詞・副助詞・終助詞など）
+   - 重要文法: 係り結び、敬語の種類、識別が必要な語など
+
 【出力構成】
-以下のJSON形式で、解析結果を返してください。JSON以外のテキストは一切含めないでください。
+以下のJSON形式で、解析結果を返してください。**JSON以外のテキストは一切含めないでください**。
 
 {
-  "correctedText": "補正済みの本文（読み取り結果の補正後）",
+  "correctedText": "補正済みの本文（OCRノイズ補正後の正しい古文）",
   "words": [
     {
-      "surface": "単語の表記（補正後の表記）",
-      "partOfSpeech": "品詞（例: 名詞、動詞、助動詞、助詞など）",
-      "conjugation": "活用形（例: 未然形、連用形、終止形など。該当しない場合は空文字列）",
+      "surface": "単語の表記",
+      "reading": "よみがな",
+      "partOfSpeech": "品詞",
+      "inflectionType": "活用の種類（該当なしは空文字列）",
+      "inflectionForm": "活用形（該当なしは空文字列）",
       "meaning": "現代語での意味",
+      "auxiliaryMeaning": "助動詞の意味（該当なしは空文字列）",
+      "grammarNote": "入試重要ポイント（なければ空文字列）",
       "colorCode": "#FF6B6B"
     }
   ],
@@ -176,19 +193,18 @@ ${text}
   "explanation": "文法的な重要ポイントや注意すべき点を簡潔に説明"
 }
 
-【色コードについて】
-単語の重要度や種類に応じて、以下のような色コードを割り当ててください：
+【色コード規則】
 - 動詞・助動詞: #FF6B6B（赤系）
 - 名詞: #4ECDC4（青緑系）
 - 助詞: #95E1D3（薄い青緑系）
 - 形容詞・形容動詞: #F38181（ピンク系）
 - その他: #AA96DA（紫系）
 
-【注意事項】
-- JSON形式のみを返し、マークダウンやコードブロックは使用しないでください
-- 単語は文の順序通りに配列に格納してください
-- 色コードは上記のカテゴリに基づいて適切に割り当ててください
-- correctedTextフィールドには、OCRノイズを補正した後の正しい古文テキストを格納してください`;
+【絶対に守る注意事項】
+- **全文を必ず解析すること**。途中で終わらせないこと。
+- JSON形式のみを返し、マークダウンのコードブロック（\`\`\`json）は使用しないこと
+- 単語は文の順序通りに配列に格納すること
+- 活用形や助動詞の意味は、入試で問われる正確な用語を使用すること`;
 
     // デバッグ: プロンプト全体をログ出力（開発環境のみ）
     if (process.env.NODE_ENV === "development") {
@@ -198,7 +214,7 @@ ${text}
     // Claude APIを呼び出し
     const message = await anthropic.messages.create({
       model: "claude-3-5-haiku-latest",
-      max_tokens: 4096,
+      max_tokens: 8192, // 長文対応のため増量
       messages: [
         {
           role: "user",
@@ -242,14 +258,19 @@ ${text}
 
     // バリデーション
     if (
+      !analysisResult.correctedText ||
       !analysisResult.words ||
       !Array.isArray(analysisResult.words) ||
+      analysisResult.words.length === 0 ||
       typeof analysisResult.translation !== "string" ||
       typeof analysisResult.explanation !== "string"
     ) {
       console.error("解析結果のバリデーションエラー:", analysisResult);
       return NextResponse.json(
-        { error: "解析結果の形式が正しくありません" },
+        { 
+          error: "解析結果の形式が正しくありません。全文が解析されていない可能性があります。",
+          details: `Words count: ${analysisResult.words?.length || 0}`
+        },
         { status: 500 }
       );
     }

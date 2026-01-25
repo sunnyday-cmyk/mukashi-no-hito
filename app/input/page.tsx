@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, Loader2, Send } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Navigation from "@/components/Navigation";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { supabase } from "@/lib/supabaseClient";
 import { useProfile } from "@/hooks/useProfile";
 
@@ -91,6 +92,11 @@ export default function InputPage() {
   };
 
   const characterCount = text.length;
+
+  // 解析中は和風ローディング画面を表示
+  if (analyzing) {
+    return <LoadingSpinner message="古文を解析しています..." />;
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-gray-900">

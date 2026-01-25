@@ -1,382 +1,233 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
-import { X, RotateCcw, BookPlus, Check, Loader2 } from "lucide-react";
-import Link from "next/link";
-import { db } from "@/lib/db";
+import { useSearchParams, useRouter } from "next/navigation";
+import { ArrowLeft, BookOpen, Languages, Lightbulb, ChevronDown, ChevronUp } from "lucide-react";
 import Navigation from "@/components/Navigation";
-
-interface Word {
-  surface: string;
-  partOfSpeech: string;
-  conjugation: string;
-  meaning: string;
-  colorCode: string;
-}
-
-interface AnalysisResult {
-  words: Word[];
-  translation: string;
-  explanation: string;
-}
+import type { AnalysisResult, Word } from "@/app/types/analysis";
 
 function ResultContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [originalText, setOriginalText] = useState<string>("");
-  const [loading, setLoading] = useState(true);
-  const [isVertical, setIsVertical] = useState(true); // 縦書き/横書き切り替え
-  const [selectedWord, setSelectedWord] = useState<Word | null>(null); // 選択された単語
-  const [savedToWordbook, setSavedToWordbook] = useState(false); // 単語帳に保存済みかどうか
-  const [historySaved, setHistorySaved] = useState(false); // 履歴に保存済みかどうか
-
-  // 単語が選択されたときに保存状態をリセット
-  useEffect(() => {
-    setSavedToWordbook(false);
-  }, [selectedWord]);
+  const [originalText, setOriginalText] = useState("");
+  const [expandedWords, setExpandedWords] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    const text = searchParams.get("text");
     const resultParam = searchParams.get("result");
+    const textParam = searchParams.get("text");
 
-    if (text) {
-      setOriginalText(text);
+    if (!resultParam) {
+      router.push("/");
+      return;
     }
-
-    if (resultParam) {
-      try {
-        const parsed = JSON.parse(resultParam);
-        setResult(parsed);
-      } catch (e) {
-        console.error("結果のパースエラー:", e);
-      }
-    }
-
-    setLoading(false);
-  }, [searchParams]);
-
-  // 解析結果を履歴に自動保存
-  useEffect(() => {
-    const saveToHistory = async () => {
-      if (!result || !originalText || historySaved) return;
-
-      try {
-        await db.history.add({
-          originalText: originalText,
-          translation: result.translation,
-          resultJson: JSON.stringify(result),
-          createdAt: new Date(),
-        });
-        setHistorySaved(true);
-        console.log("履歴に保存しました");
-      } catch (error) {
-        console.error("履歴の保存に失敗しました:", error);
-      }
-    };
-
-    saveToHistory();
-  }, [result, originalText, historySaved]);
-
-  // 単語帳に追加する処理
-  const handleAddToWordbook = async () => {
-    if (!selectedWord) return;
 
     try {
-      // 重複チェック（同じ表記と品詞の組み合わせが既に存在するか）
-      const allWords = await db.wordbook
-        .where("surface")
-        .equals(selectedWord.surface)
-        .toArray();
-      
-      const existing = allWords.find(
-        (item) => item.partOfSpeech === selectedWord.partOfSpeech
-      );
-
-      if (existing) {
-        alert("この単語は既に単語帳に登録されています。");
-        return;
-      }
-
-      await db.wordbook.add({
-        surface: selectedWord.surface,
-        partOfSpeech: selectedWord.partOfSpeech,
-        meaning: selectedWord.meaning,
-        conjugation: selectedWord.conjugation || undefined,
-        colorCode: selectedWord.colorCode || undefined,
-        createdAt: new Date(),
-      });
-
-      setSavedToWordbook(true);
-      setTimeout(() => {
-        setSavedToWordbook(false);
-        setSelectedWord(null);
-      }, 1500);
-    } catch (error) {
-      console.error("単語帳への保存に失敗しました:", error);
-      alert("単語帳への保存に失敗しました。");
+      const parsedResult: AnalysisResult = JSON.parse(resultParam);
+      setResult(parsedResult);
+      setOriginalText(textParam || "");
+    } catch (e) {
+      console.error("解析結果のパースに失敗:", e);
+      router.push("/");
     }
+  }, [searchParams, router]);
+
+  const toggleWordExpansion = (index: number) => {
+    const newExpanded = new Set(expandedWords);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedWords(newExpanded);
   };
-
-  // 原文を単語ごとに分割して表示用データを作成
-  const getTextWithWords = () => {
-    if (!result || !originalText) return [];
-    
-    const words: Array<{ word: Word | null; text: string }> = [];
-    let currentIndex = 0;
-    
-    // 単語の位置を特定（順番にマッチング）
-    for (const word of result.words) {
-      // 現在位置から単語を検索
-      const wordIndex = originalText.indexOf(word.surface, currentIndex);
-      
-      if (wordIndex === -1) {
-        // 単語が見つからない場合はスキップ
-        continue;
-      }
-      
-      // 単語の前にテキストがある場合
-      if (wordIndex > currentIndex) {
-        const beforeText = originalText.slice(currentIndex, wordIndex);
-        if (beforeText.trim()) {
-          words.push({
-            word: null,
-            text: beforeText,
-          });
-        }
-      }
-      
-      // 単語を追加
-      words.push({
-        word: word,
-        text: word.surface,
-      });
-      
-      currentIndex = wordIndex + word.surface.length;
-    }
-    
-    // 残りのテキスト
-    if (currentIndex < originalText.length) {
-      const remainingText = originalText.slice(currentIndex);
-      if (remainingText.trim()) {
-        words.push({
-          word: null,
-          text: remainingText,
-        });
-      }
-    }
-    
-    return words;
-  };
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-white">
-        <p className="text-gray-600">読み込み中...</p>
-      </div>
-    );
-  }
 
   if (!result) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6">
-        <p className="mb-4 text-gray-600">解析結果が見つかりませんでした。</p>
-        <Link
-          href="/"
-          className="rounded-full bg-gray-900 px-6 py-3 text-sm text-white transition hover:bg-gray-800"
-        >
-          トップに戻る
-        </Link>
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-900" />
+          <p className="text-sm text-gray-600">解析結果を読み込んでいます...</p>
+        </div>
       </div>
     );
   }
 
-  const textWithWords = getTextWithWords();
-
   return (
-    <div className="flex min-h-screen flex-col bg-white text-gray-900">
-      <main className="flex-1 px-5 pt-20 py-6 pb-24">
-        {/* 原文エリア */}
-        <section className="mb-8">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-medium text-gray-500">原文</h2>
-            {/* 縦書き/横書き切り替えスイッチ */}
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-white pb-24">
+      {/* ヘッダー */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+        <div className="mx-auto max-w-4xl px-4 py-4">
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsVertical(!isVertical)}
-              className="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-700 transition hover:bg-gray-50 active:scale-95"
+              onClick={() => router.back()}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200 active:scale-95"
+              aria-label="戻る"
             >
-              <RotateCcw className="h-3.5 w-3.5" />
-              {isVertical ? "横書き" : "縦書き"}
+              <ArrowLeft className="h-5 w-5 text-gray-700" />
             </button>
+            <h1 className="text-lg font-medium text-gray-900">解析結果</h1>
           </div>
-          <div
-            className={`rounded-xl border border-gray-200 bg-gray-50 p-4 sm:p-6 ${
-              isVertical ? "writing-vertical overflow-x-auto" : ""
-            }`}
-            style={
-              isVertical
-                ? {
-                    writingMode: "vertical-rl",
-                    textOrientation: "upright",
-                    maxHeight: "60vh",
-                    overflowY: "auto",
-                    overflowX: "auto",
-                    WebkitOverflowScrolling: "touch",
-                    scrollbarWidth: "thin",
-                  }
-                : {
-                    minHeight: "120px",
-                  }
-            }
-          >
-            <div
-              className={`${isVertical ? "" : "flex flex-wrap"} gap-1 leading-relaxed`}
-            >
-              {textWithWords.map((item, index) => {
-                if (item.word) {
-                  return (
-                    <span
-                      key={index}
-                      onClick={() => setSelectedWord(item.word)}
-                      className="cursor-pointer rounded px-1.5 py-0.5 font-medium transition hover:opacity-80 active:scale-95"
-                      style={{
-                        backgroundColor: item.word.colorCode,
-                        color: "white",
-                      }}
-                    >
-                      {item.text}
-                    </span>
-                  );
-                } else {
-                  return (
-                    <span key={index} className="text-gray-900">
-                      {item.text}
-                    </span>
-                  );
-                }
-              })}
-            </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-4xl px-4 py-6 space-y-6">
+        {/* 補正済み本文 */}
+        <section className="rounded-2xl bg-white p-5 shadow-sm border border-gray-200">
+          <div className="mb-3 flex items-center gap-2 text-amber-900">
+            <BookOpen className="h-5 w-5" />
+            <h2 className="text-base font-medium">補正済み本文</h2>
           </div>
+          <p className="leading-relaxed text-gray-900 whitespace-pre-wrap font-serif text-base">
+            {result.correctedText}
+          </p>
         </section>
 
         {/* 現代語訳 */}
-        <section className="mb-8">
-          <h2 className="mb-3 text-sm font-medium text-gray-500">現代語訳</h2>
-          <div className="rounded-xl border border-gray-200 bg-blue-50 p-4">
-            <p className="leading-relaxed text-gray-900">{result.translation}</p>
+        <section className="rounded-2xl bg-blue-50 p-5 shadow-sm border border-blue-200">
+          <div className="mb-3 flex items-center gap-2 text-blue-900">
+            <Languages className="h-5 w-5" />
+            <h2 className="text-base font-medium">現代語訳</h2>
           </div>
+          <p className="leading-relaxed text-gray-800 text-sm">
+            {result.translation}
+          </p>
         </section>
 
-        {/* 文法的説明 */}
-        <section className="mb-8">
-          <h2 className="mb-3 text-sm font-medium text-gray-500">
-            文法的な重要ポイント
-          </h2>
-          <div className="rounded-xl border border-gray-200 bg-amber-50 p-4">
-            <p className="leading-relaxed text-gray-900">{result.explanation}</p>
+        {/* 文法解説 */}
+        <section className="rounded-2xl bg-purple-50 p-5 shadow-sm border border-purple-200">
+          <div className="mb-3 flex items-center gap-2 text-purple-900">
+            <Lightbulb className="h-5 w-5" />
+            <h2 className="text-base font-medium">重要文法ポイント</h2>
           </div>
+          <p className="leading-relaxed text-gray-800 text-sm whitespace-pre-wrap">
+            {result.explanation}
+          </p>
         </section>
 
-        {/* 単語一覧（参考用） */}
-        <section className="mb-8">
-          <h2 className="mb-3 text-sm font-medium text-gray-500">単語一覧</h2>
+        {/* 詳細品詞分解（カード形式） */}
+        <section className="rounded-2xl bg-white p-5 shadow-sm border border-gray-200">
+          <div className="mb-4 flex items-center gap-2 text-gray-900">
+            <BookOpen className="h-5 w-5" />
+            <h2 className="text-base font-medium">詳細品詞分解</h2>
+            <span className="ml-auto text-xs text-gray-500">
+              {result.words.length}語
+            </span>
+          </div>
+
           <div className="space-y-2">
-            {result.words.map((word, index) => (
-              <div
-                key={index}
-                onClick={() => setSelectedWord(word)}
-                className="flex cursor-pointer flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-white p-3 transition hover:bg-gray-50 active:scale-[0.98]"
-              >
-                <span
-                  className="rounded px-2 py-1 text-sm font-medium text-white"
-                  style={{ backgroundColor: word.colorCode }}
+            {result.words.map((word, index) => {
+              const isExpanded = expandedWords.has(index);
+              const hasDetails = 
+                word.inflectionType || 
+                word.inflectionForm || 
+                word.auxiliaryMeaning || 
+                word.grammarNote;
+
+              return (
+                <div
+                  key={index}
+                  className="rounded-xl border border-gray-200 bg-gray-50 overflow-hidden transition hover:shadow-md"
                 >
-                  {word.surface}
-                </span>
-                <span className="text-sm text-gray-600">
-                  {word.partOfSpeech}
-                  {word.conjugation && `・${word.conjugation}`}
-                </span>
-                <span className="text-sm text-gray-900">{word.meaning}</span>
-              </div>
-            ))}
+                  {/* 基本情報（常に表示） */}
+                  <button
+                    onClick={() => hasDetails && toggleWordExpansion(index)}
+                    className="w-full text-left p-4 flex items-start gap-3 transition hover:bg-gray-100 active:bg-gray-200"
+                    disabled={!hasDetails}
+                  >
+                    <div
+                      className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-white text-sm font-medium shadow-sm"
+                      style={{ backgroundColor: word.colorCode }}
+                    >
+                      {word.surface.charAt(0)}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <span className="font-medium text-gray-900 text-base">
+                          {word.surface}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {word.reading}
+                        </span>
+                      </div>
+                      
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white border border-gray-300 text-xs text-gray-700">
+                          {word.partOfSpeech}
+                        </span>
+                        {word.inflectionForm && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-red-100 border border-red-300 text-xs text-red-700">
+                            {word.inflectionForm}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <p className="text-sm text-gray-700">
+                        {word.meaning}
+                      </p>
+                    </div>
+
+                    {hasDetails && (
+                      <div className="flex-shrink-0 mt-2">
+                        {isExpanded ? (
+                          <ChevronUp className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-400" />
+                        )}
+                      </div>
+                    )}
+                  </button>
+
+                  {/* 詳細情報（展開時のみ表示） */}
+                  {isExpanded && hasDetails && (
+                    <div className="px-4 pb-4 pt-2 bg-white border-t border-gray-200 space-y-3">
+                      {word.inflectionType && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 mb-1">活用の種類</p>
+                          <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                            {word.inflectionType}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {word.auxiliaryMeaning && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 mb-1">助動詞の意味</p>
+                          <p className="text-sm text-gray-900 bg-red-50 px-3 py-2 rounded-lg border border-red-200">
+                            {word.auxiliaryMeaning}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {word.grammarNote && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 mb-1">
+                            📝 入試重要ポイント
+                          </p>
+                          <p className="text-sm text-gray-900 bg-yellow-50 px-3 py-2 rounded-lg border border-yellow-200 leading-relaxed">
+                            {word.grammarNote}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </section>
+
+        {/* クレジット情報 */}
+        {!result.isSubscribed && (
+          <div className="rounded-xl bg-gray-50 px-4 py-3 text-center border border-gray-200">
+            <p className="text-xs text-gray-600">
+              残りクレジット: <span className="font-medium text-gray-900">{result.credits}</span>
+            </p>
+          </div>
+        )}
       </main>
 
-      {/* 単語詳細ポップアップ */}
-      {selectedWord && (
-        <>
-          {/* オーバーレイ */}
-          <div
-            className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm transition-opacity duration-200"
-            onClick={() => setSelectedWord(null)}
-            style={{ animation: "fadeIn 0.2s ease-out" }}
-          />
-          {/* ポップアップ */}
-          <div
-            className="fixed left-1/2 top-1/2 z-40 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2"
-            style={{
-              animation: "slideUp 0.3s ease-out",
-            }}
-          >
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl">
-              <div className="mb-4 flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <span
-                    className="rounded-lg px-3 py-2 text-lg font-medium text-white"
-                    style={{ backgroundColor: selectedWord.colorCode }}
-                  >
-                    {selectedWord.surface}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setSelectedWord(null)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition hover:bg-gray-200 active:scale-95"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <p className="mb-1 text-xs font-medium text-gray-500">品詞</p>
-                  <p className="text-base text-gray-900">{selectedWord.partOfSpeech}</p>
-                </div>
-                {selectedWord.conjugation && (
-                  <div>
-                    <p className="mb-1 text-xs font-medium text-gray-500">活用形</p>
-                    <p className="text-base text-gray-900">{selectedWord.conjugation}</p>
-                  </div>
-                )}
-                <div>
-                  <p className="mb-1 text-xs font-medium text-gray-500">意味</p>
-                  <p className="text-base leading-relaxed text-gray-900">
-                    {selectedWord.meaning}
-                  </p>
-                </div>
-                {/* 単語帳に追加ボタン */}
-                <button
-                  onClick={handleAddToWordbook}
-                  disabled={savedToWordbook}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:bg-green-600"
-                >
-                  {savedToWordbook ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      単語帳に追加しました
-                    </>
-                  ) : (
-                    <>
-                      <BookPlus className="h-4 w-4" />
-                      単語帳に追加
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
       <Navigation />
     </div>
   );
@@ -386,10 +237,7 @@ export default function ResultPage() {
   return (
     <Suspense fallback={
       <div className="flex min-h-screen items-center justify-center bg-white">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-          <p className="text-sm text-gray-600">読み込み中...</p>
-        </div>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-900" />
       </div>
     }>
       <ResultContent />
