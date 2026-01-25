@@ -38,9 +38,13 @@ export default function WordbookPage() {
       filtered = filtered.filter(
         (word) =>
           word.surface.toLowerCase().includes(query) ||
+          word.reading?.toLowerCase().includes(query) ||
           word.partOfSpeech.toLowerCase().includes(query) ||
           word.meaning.toLowerCase().includes(query) ||
-          (word.conjugation && word.conjugation.toLowerCase().includes(query))
+          word.inflectionType?.toLowerCase().includes(query) ||
+          word.inflectionForm?.toLowerCase().includes(query) ||
+          word.auxiliaryMeaning?.toLowerCase().includes(query) ||
+          word.grammarNote?.toLowerCase().includes(query)
       );
     }
 
@@ -167,21 +171,49 @@ export default function WordbookPage() {
                   </span>
                   <div className="flex-1">
                     <div className="mb-1 flex items-center gap-2">
+                      {word.reading && (
+                        <span className="text-xs text-gray-500">
+                          {word.reading}
+                        </span>
+                      )}
                       <span className="text-xs font-medium text-gray-600">
                         {word.partOfSpeech}
                       </span>
-                      {word.conjugation && (
+                      {word.inflectionForm && (
                         <>
                           <span className="text-gray-300">・</span>
                           <span className="text-xs text-gray-500">
-                            {word.conjugation}
+                            {word.inflectionForm}
                           </span>
                         </>
                       )}
                     </div>
-                    <p className="text-sm leading-relaxed text-gray-900">
+                    <p className="text-sm leading-relaxed text-gray-900 mb-2">
                       {word.meaning}
                     </p>
+                    
+                    {/* 追加情報 */}
+                    {word.inflectionType && (
+                      <div className="mb-2 rounded-lg bg-gray-50 px-3 py-1.5 text-xs">
+                        <span className="font-medium text-gray-600">活用: </span>
+                        <span className="text-gray-800">{word.inflectionType}</span>
+                      </div>
+                    )}
+                    
+                    {word.auxiliaryMeaning && (
+                      <div className="mb-2 rounded-lg bg-red-50 px-3 py-1.5 text-xs">
+                        <span className="font-medium text-red-700">助動詞の意味: </span>
+                        <span className="text-red-900">{word.auxiliaryMeaning}</span>
+                      </div>
+                    )}
+                    
+                    {word.grammarNote && (
+                      <div className="mb-2 rounded-lg bg-yellow-50 px-3 py-1.5 text-xs">
+                        <span className="font-medium text-yellow-700">📝 </span>
+                        <span className="text-yellow-900">{word.grammarNote}</span>
+                      </div>
+                    )}
+                    
                     <div className="mt-2 text-xs text-gray-400">
                       {new Date(word.createdAt).toLocaleDateString("ja-JP", {
                         year: "numeric",

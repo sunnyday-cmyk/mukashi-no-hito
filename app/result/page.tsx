@@ -2,8 +2,9 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ArrowLeft, BookOpen, Languages, Lightbulb, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, BookOpen, Languages, Lightbulb, ChevronDown, ChevronUp, BookmarkPlus, Check } from "lucide-react";
 import Navigation from "@/components/Navigation";
+import { db } from "@/lib/db";
 import type { AnalysisResult, Word } from "@/app/types/analysis";
 
 function ResultContent() {
@@ -12,6 +13,7 @@ function ResultContent() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [originalText, setOriginalText] = useState("");
   const [expandedWords, setExpandedWords] = useState<Set<number>>(new Set());
+  const [addedWords, setAddedWords] = useState<Set<string>>(new Set()); // 追加済みの単語を管理
 
   useEffect(() => {
     const resultParam = searchParams.get("result");
@@ -40,6 +42,39 @@ function ResultContent() {
       newExpanded.add(index);
     }
     setExpandedWords(newExpanded);
+  };
+
+  // 単語帳に追加する関数
+  const handleAddToWordbook = async (word: Word) => {
+    try {
+      await db.wordbook.add({
+        surface: word.surface,
+        reading: word.reading,
+        partOfSpeech: word.partOfSpeech,
+        inflectionType: word.inflectionType,
+        inflectionForm: word.inflectionForm,
+        meaning: word.meaning,
+        auxiliaryMeaning: word.auxiliaryMeaning,
+        grammarNote: word.grammarNote,
+        colorCode: word.colorCode,
+        createdAt: new Date(),
+      });
+      
+      // 追加済みとしてマーク
+      setAddedWords((prev) => new Set(prev).add(word.surface));
+      
+      // 成功のフィードバック（1秒後に自動で消える）
+      setTimeout(() => {
+        setAddedWords((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(word.surface);
+          return newSet;
+        });
+      }, 2000);
+    } catch (error) {
+      console.error("単語帳への追加に失敗:", error);
+      alert("単語帳への追加に失敗しました。");
+    }
   };
 
   if (!result) {
@@ -118,6 +153,7 @@ function ResultContent() {
           <div className="space-y-2">
             {result.words.map((word, index) => {
               const isExpanded = expandedWords.has(index);
+              const isAdded = addedWords.has(word.surface);
               const hasDetails = 
                 word.inflectionType || 
                 word.inflectionForm || 
@@ -130,54 +166,82 @@ function ResultContent() {
                   className="rounded-xl border border-gray-200 bg-gray-50 overflow-hidden transition hover:shadow-md"
                 >
                   {/* 基本情報（常に表示） */}
-                  <button
-                    onClick={() => hasDetails && toggleWordExpansion(index)}
-                    className="w-full text-left p-4 flex items-start gap-3 transition hover:bg-gray-100 active:bg-gray-200"
-                    disabled={!hasDetails}
-                  >
-                    <div
-                      className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-white text-sm font-medium shadow-sm"
-                      style={{ backgroundColor: word.colorCode }}
-                    >
-                      {word.surface.charAt(0)}
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2 mb-1">
-                        <span className="font-medium text-gray-900 text-base">
-                          {word.surface}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {word.reading}
-                        </span>
-                      </div>
-                      
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white border border-gray-300 text-xs text-gray-700">
-                          {word.partOfSpeech}
-                        </span>
-                        {word.inflectionForm && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-red-100 border border-red-300 text-xs text-red-700">
-                            {word.inflectionForm}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <p className="text-sm text-gray-700">
-                        {word.meaning}
-                      </p>
-                    </div>
+                  <div className="p-4">
+                    <div className="flex items-start gap-3">
+                      <button
+                        onClick={() => hasDetails && toggleWordExpansion(index)}
+                        className="flex-1 text-left flex items-start gap-3 transition"
+                        disabled={!hasDetails}
+                      >
+                        <div
+                          className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-white text-sm font-medium shadow-sm"
+                          style={{ backgroundColor: word.colorCode }}
+                        >
+                          {word.surface.charAt(0)}
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2 mb-1">
+                            <span className="font-medium text-gray-900 text-base">
+                              {word.surface}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {word.reading}
+                            </span>
+                          </div>
+                          
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white border border-gray-300 text-xs text-gray-700">
+                              {word.partOfSpeech}
+                            </span>
+                            {word.inflectionForm && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-red-100 border border-red-300 text-xs text-red-700">
+                                {word.inflectionForm}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <p className="text-sm text-gray-700">
+                            {word.meaning}
+                          </p>
+                        </div>
 
-                    {hasDetails && (
-                      <div className="flex-shrink-0 mt-2">
-                        {isExpanded ? (
-                          <ChevronUp className="h-5 w-5 text-gray-400" />
-                        ) : (
-                          <ChevronDown className="h-5 w-5 text-gray-400" />
+                        {hasDetails && (
+                          <div className="flex-shrink-0 mt-2">
+                            {isExpanded ? (
+                              <ChevronUp className="h-5 w-5 text-gray-400" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5 text-gray-400" />
+                            )}
+                          </div>
                         )}
-                      </div>
-                    )}
-                  </button>
+                      </button>
+                      
+                      {/* 単語帳に追加ボタン */}
+                      <button
+                        onClick={() => handleAddToWordbook(word)}
+                        disabled={isAdded}
+                        className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                          isAdded
+                            ? "bg-green-100 text-green-700 border border-green-300 cursor-default"
+                            : "bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 active:scale-95"
+                        }`}
+                        aria-label="単語帳に追加"
+                      >
+                        {isAdded ? (
+                          <>
+                            <Check className="h-3.5 w-3.5" />
+                            追加済み
+                          </>
+                        ) : (
+                          <>
+                            <BookmarkPlus className="h-3.5 w-3.5" />
+                            追加
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
 
                   {/* 詳細情報（展開時のみ表示） */}
                   {isExpanded && hasDetails && (

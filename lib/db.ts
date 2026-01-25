@@ -9,13 +9,17 @@ export interface HistoryItem {
   createdAt: Date; // 日付
 }
 
-// 単語帳テーブルの型定義
+// 単語帳テーブルの型定義（大学入試対応の拡張版）
 export interface WordbookItem {
   id?: number;
   surface: string; // 単語の表記
+  reading: string; // 読み（ひらがな）
   partOfSpeech: string; // 品詞
+  inflectionType?: string; // 活用の種類（オプション）
+  inflectionForm?: string; // 活用形（オプション）
   meaning: string; // 意味
-  conjugation?: string; // 活用形（オプション）
+  auxiliaryMeaning?: string; // 助動詞の意味（オプション）
+  grammarNote?: string; // 入試重要ポイント（オプション）
   colorCode?: string; // 色コード（オプション）
   createdAt: Date; // 登録日
 }
@@ -30,8 +34,14 @@ class MukashiNoHitoDB extends Dexie {
     
     // スキーマ定義
     this.version(1).stores({
-      history: "++id, originalText, createdAt", // idは自動インクリメント、originalTextとcreatedAtにインデックス
-      wordbook: "++id, surface, partOfSpeech, createdAt", // idは自動インクリメント、surface、partOfSpeech、createdAtにインデックス
+      history: "++id, originalText, createdAt",
+      wordbook: "++id, surface, partOfSpeech, createdAt",
+    });
+    
+    // バージョン2: 新しいフィールドを追加（既存データは保持）
+    this.version(2).stores({
+      history: "++id, originalText, createdAt",
+      wordbook: "++id, surface, partOfSpeech, reading, createdAt",
     });
   }
 }
