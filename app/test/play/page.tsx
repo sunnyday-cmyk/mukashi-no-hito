@@ -32,6 +32,7 @@ function TestPlayContent() {
 
   const mode = (searchParams.get("mode") || "meaning") as TestMode;
   const count = parseInt(searchParams.get("count") || "10", 10);
+  const wordIdsParam = searchParams.get("wordIds"); // 選択された単語のID
 
   useEffect(() => {
     loadWords();
@@ -45,10 +46,17 @@ function TestPlayContent() {
 
   const loadWords = async () => {
     try {
-      const allWords = await db.wordbook.toArray();
+      let allWords = await db.wordbook.toArray();
+      
+      // 選択された単語のIDでフィルタリング
+      if (wordIdsParam) {
+        const selectedIds = wordIdsParam.split(",").map((id) => parseInt(id, 10));
+        allWords = allWords.filter((w) => w.id !== undefined && selectedIds.includes(w.id));
+      }
+      
       if (allWords.length < 4) {
-        alert("単語帳に4つ以上の単語が必要です。");
-        router.push("/wordbook");
+        alert("テストには4つ以上の単語が必要です。");
+        router.push("/test");
         return;
       }
       setWords(allWords);
