@@ -24,8 +24,26 @@ export function useProfile() {
       } = await supabase.auth.getSession();
 
       // セッション取得エラーまたはセッションがない場合
-      if (sessionError || !currentSession) {
-        console.log("セッションがありません:", sessionError?.message || "未ログイン");
+      if (sessionError) {
+        // ネットワークエラーの場合は静かに失敗させる
+        if (sessionError.message?.includes("Failed to fetch") || 
+            sessionError.message?.includes("NetworkError") ||
+            sessionError.message?.includes("fetch")) {
+          console.log("ネットワークエラー（一時的）:", sessionError.message);
+          // ローディング状態を解除するが、既存の状態は保持
+          setLoading(false);
+          return;
+        }
+        
+        console.log("セッションエラー:", sessionError.message);
+        setSession(null);
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+      
+      if (!currentSession) {
+        console.log("セッションがありません: 未ログイン");
         setSession(null);
         setProfile(null);
         setLoading(false);
@@ -84,6 +102,18 @@ export function useProfile() {
         });
       }
     } catch (error) {
+      // ネットワークエラーの場合は静かに失敗させる
+      if (error instanceof Error && 
+          (error.message?.includes("Failed to fetch") || 
+           error.message?.includes("NetworkError") ||
+           error.message?.includes("fetch") ||
+           error.name === "AbortError")) {
+        console.log("ネットワークエラー（一時的catch）:", error.message);
+        // ローディング状態を解除するが、既存の状態は保持
+        setLoading(false);
+        return;
+      }
+      
       // エラーの詳細をログ出力
       console.error("プロフィール取得エラー（catch）:", {
         error,
