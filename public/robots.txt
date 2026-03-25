@@ -6,4 +6,3 @@ Disallow: /api/
 # Sitemap
 Sitemap: https://mukashi-no-hito-4uir.vercel.app/sitemap.xml
 
-

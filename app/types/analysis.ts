@@ -19,4 +19,3 @@ export interface AnalysisResult {
   credits: number;
   isSubscribed: boolean;
 }
-

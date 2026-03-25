@@ -1,156 +1,17 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import type { Subject } from "@/types";
 
-// APIキーを環境変数から取得
 const getAnthropicClient = () => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEYが設定されていません");
-  }
-  return new Anthropic({
-    apiKey: apiKey,
-  });
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEYが設定されていません");
+  return new Anthropic({ apiKey });
 };
 
-// レスポンスの型定義
-interface Word {
-  surface: string; // 表記
-  reading: string; // 読み（ひらがな）
-  partOfSpeech: string; // 品詞（名詞、動詞、助動詞、助詞、形容詞、形容動詞など）
-  inflectionType: string; // 活用の種類（四段、上一段、上二段、下一段、下二段、ラ変、ナ変、サ変、カ変など。該当なしは空文字列）
-  inflectionForm: string; // 活用形（未然形、連用形、終止形、連体形、已然形、命令形。該当なしは空文字列）
-  meaning: string; // 現代語での意味
-  auxiliaryMeaning: string; // 助動詞の場合の意味（過去、完了、推量、意志、打消、受身、使役、尊敬、謙譲など。該当なしは空文字列）
-  grammarNote: string; // 入試で問われる重要文法ポイント（係り結び、敬語、識別問題など。なければ空文字列）
-  colorCode: string; // 色コード
-}
-
-interface AnalysisResponse {
-  correctedText: string; // 補正済みの本文（OCRノイズ補正後、必須）
-  words: Word[];
-  translation: string; // 現代語訳
-  explanation: string; // 文法的な重要ポイント
-  credits: number; // 残りクレジット数
-  isSubscribed: boolean; // サブスクリプション状態
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    // ========== 門番処理: 認証とクレジットチェック ==========
-    
-    // Supabaseクライアントの初期化（サーバーサイド用）
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseAnonKey) {
-      return NextResponse.json(
-        { error: "Supabase環境変数が設定されていません" },
-        { status: 500 }
-      );
-    }
-
-    // リクエストヘッダーから認証トークンを取得
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "認証が必要です。ログインしてください。" },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    });
-
-    // ユーザー認証
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return NextResponse.json(
-        { error: "認証に失敗しました。再度ログインしてください。" },
-        { status: 401 }
-      );
-    }
-
-    // profilesテーブルからcreditsとis_subscribedを取得
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("credits, is_subscribed")
-      .eq("id", user.id)
-      .single();
-
-    if (profileError) {
-      console.error("プロフィール取得エラー:", profileError);
-      return NextResponse.json(
-        { error: "ユーザー情報の取得に失敗しました。" },
-        { status: 500 }
-      );
-    }
-
-    const credits = profile?.credits ?? 0;
-    const isSubscribed = profile?.is_subscribed ?? false;
-
-    // クレジット判定ロジック
-    if (!isSubscribed && credits <= 0) {
-      return NextResponse.json(
-        {
-          error: "クレジットが不足しています。サブスクリプションに加入するか、クレジットを購入してください。",
-          credits: credits,
-          isSubscribed: isSubscribed,
-        },
-        { status: 403 }
-      );
-    }
-
-    // ========== 通常の解析処理 ==========
-
-    // APIキーの確認
-    if (!process.env.ANTHROPIC_API_KEY) {
-      console.error("ANTHROPIC_API_KEYが環境変数に設定されていません");
-      return NextResponse.json(
-        { error: "ANTHROPIC_API_KEYが設定されていません。.env.localファイルを確認してください。" },
-        { status: 500 }
-      );
-    }
-
-    // リクエストボディの取得とバリデーション
-    let body;
-    try {
-      body = await request.json();
-    } catch (e) {
-      return NextResponse.json(
-        { error: "リクエストボディの解析に失敗しました" },
-        { status: 400 }
-      );
-    }
-
-    const { text } = body;
-
-    if (!text || typeof text !== "string" || text.trim().length === 0) {
-      return NextResponse.json(
-        { error: "古文テキストが提供されていません" },
-        { status: 400 }
-      );
-    }
-
-    // Anthropicクライアントの初期化
-    const anthropic = getAnthropicClient();
-
-    // デバッグ: Claudeに送る直前のプロンプトをログ出力
-    console.log("=== Claude API Request Debug ===");
-    console.log("Original text length:", text.length);
-    console.log("Original text preview:", text.substring(0, 100) + "...");
-
-    const prompt = `あなたは大学入試の古文を専門とする一流の予備校講師です。以下の古文テキストを**全文漏らさず**解析してください。
+function buildPrompt(text: string, subject: Subject): string {
+  if (subject === "japanese_classical") {
+    return `あなたは大学入試の古文を専門とする一流の予備校講師です。以下の古文テキストを**全文漏らさず**解析してください。
 
 【重要】OCRノイズの自動補正
 入力テキストはGoogle Cloud Vision APIで生成されたものであり、以下のノイズが含まれる可能性があります：
@@ -158,198 +19,226 @@ export async function POST(request: NextRequest) {
 - 縦書き特有の改行位置の乱れや行の順番の入れ替わり
 - ページ番号、ルビの一部、記号などの不要なノイズ
 
-これらを文脈から判断し、正しい古文として補正してください。
-
 【解析する古文（OCR生データ）】
 ${text}
 
 【解析の必須要件】
-1. **全文解析の徹底**: 入力された古文を**最初から最後まで一文字も漏らさず**解析してください。最初の一文だけで終わらせないでください。
-2. **大学入試レベルの文法解析**: 各単語について以下を明記してください：
-   - 動詞・形容詞・形容動詞: 活用の種類（四段・上一段・上二段・下一段・下二段・ラ変・ナ変・サ変・カ変・ク活用・シク活用・ナリ活用・タリ活用）と活用形（未然形・連用形・終止形・連体形・已然形・命令形）
-   - 助動詞: 意味（過去・完了・推量・意志・打消・受身・使役・尊敬・謙譲・自発・可能など）と活用形
+1. **全文解析の徹底**: 入力された古文を**最初から最後まで一文字も漏らさず**解析してください。
+2. **大学入試レベルの文法解析**:
+   - 動詞・形容詞・形容動詞: 活用の種類と活用形
+   - 助動詞: 意味（過去・完了・推量・意志・打消・受身・使役・尊敬・謙譲など）と活用形
    - 助詞: 種類（格助詞・接続助詞・副助詞・終助詞など）
    - 重要文法: 係り結び、敬語の種類、識別が必要な語など
 
-【出力構成】
-以下のJSON形式で、解析結果を返してください。**JSON以外のテキストは一切含めないでください**。
-
+【出力構成】以下のJSON形式のみで返してください。JSONのみ、マークダウン不要。
 {
-  "correctedText": "補正済みの本文（OCRノイズ補正後の正しい古文）",
+  "correctedText": "補正済みの本文",
   "words": [
     {
       "surface": "単語の表記",
       "reading": "よみがな",
       "partOfSpeech": "品詞",
-      "inflectionType": "活用の種類（該当なしは空文字列）",
-      "inflectionForm": "活用形（該当なしは空文字列）",
+      "inflectionType": "活用の種類（なしは空文字）",
+      "inflectionForm": "活用形（なしは空文字）",
       "meaning": "現代語での意味",
-      "auxiliaryMeaning": "助動詞の意味（該当なしは空文字列）",
-      "grammarNote": "入試重要ポイント（なければ空文字列）",
+      "auxiliaryMeaning": "助動詞の意味（なしは空文字）",
+      "grammarNote": "入試重要ポイント（なければ空文字）",
+      "importance": 3,
       "colorCode": "#FF6B6B"
     }
   ],
   "translation": "全文の現代語訳",
-  "explanation": "文法的な重要ポイントや注意すべき点を簡潔に説明"
+  "explanation": "文法的な重要ポイントや注意すべき点",
+  "grammar_points": [
+    { "text": "該当箇所", "explanation": "文法説明" }
+  ]
+}
+【色コード規則】動詞・助動詞: #FF6B6B / 名詞: #4ECDC4 / 助詞: #95E1D3 / 形容詞・形容動詞: #F38181 / その他: #AA96DA
+【注意】全文を必ず解析すること。途中で終わらせないこと。`;
+  }
+
+  if (subject === "chinese_classical") {
+    return `あなたは大学入試の漢文を専門とする一流の予備校講師です。以下の漢文テキストを解析してください。
+
+【解析する漢文】
+${text}
+
+【解析の必須要件】
+1. 書き下し文を作成してください
+2. 全文を現代語訳してください
+3. 重要な句法・文法ポイントを解析してください（返り点、再読文字、句法など）
+4. 重要単語を抽出し、意味を説明してください
+
+【出力構成】以下のJSON形式のみで返してください。JSONのみ、マークダウン不要。
+{
+  "correctedText": "原文（補正済み）",
+  "kundokuText": "書き下し文",
+  "words": [
+    {
+      "surface": "漢字",
+      "reading": "よみ",
+      "partOfSpeech": "品詞",
+      "inflectionType": "",
+      "inflectionForm": "",
+      "meaning": "意味・用法",
+      "auxiliaryMeaning": "",
+      "grammarNote": "句法・重要ポイント（なければ空文字）",
+      "importance": 3,
+      "colorCode": "#FF6B6B"
+    }
+  ],
+  "translation": "現代語訳",
+  "explanation": "重要な句法・文法ポイントの解説",
+  "grammar_points": [
+    { "text": "該当箇所", "explanation": "句法の説明" }
+  ]
+}
+【色コード規則】動詞: #FF6B6B / 名詞: #4ECDC4 / 助字: #95E1D3 / 形容詞: #F38181 / その他: #AA96DA`;
+  }
+
+  // english
+  return `You are an expert English teacher for Japanese high school students preparing for university entrance exams. Analyze the following English text.
+
+【English text to analyze】
+${text}
+
+【Requirements】
+1. Translate the full text into natural Japanese
+2. Extract important vocabulary (especially words at CEFR B2+ level)
+3. Explain important grammar structures
+4. For each word, provide part of speech, Japanese meaning, and importance score
+
+【Output】Return ONLY the following JSON. No markdown, no extra text.
+{
+  "correctedText": "Original text (corrected if needed)",
+  "words": [
+    {
+      "surface": "English word",
+      "reading": "pronunciation hint (katakana)",
+      "partOfSpeech": "品詞 (e.g. 名詞, 動詞, 形容詞)",
+      "inflectionType": "",
+      "inflectionForm": "",
+      "meaning": "日本語の意味",
+      "auxiliaryMeaning": "",
+      "grammarNote": "用法・入試ポイント（なければ空文字）",
+      "importance": 3,
+      "colorCode": "#FF6B6B"
+    }
+  ],
+  "translation": "日本語訳（全文）",
+  "explanation": "重要な文法構造・表現の解説",
+  "grammar_points": [
+    { "text": "grammar structure", "explanation": "説明" }
+  ]
+}
+Color codes: Verbs #FF6B6B / Nouns #4ECDC4 / Conjunctions #95E1D3 / Adjectives/Adverbs #F38181 / Others #AA96DA`;
 }
 
-【色コード規則】
-- 動詞・助動詞: #FF6B6B（赤系）
-- 名詞: #4ECDC4（青緑系）
-- 助詞: #95E1D3（薄い青緑系）
-- 形容詞・形容動詞: #F38181（ピンク系）
-- その他: #AA96DA（紫系）
-
-【絶対に守る注意事項】
-- **全文を必ず解析すること**。途中で終わらせないこと。
-- JSON形式のみを返し、マークダウンのコードブロック（\`\`\`json）は使用しないこと
-- 単語は文の順序通りに配列に格納すること
-- 活用形や助動詞の意味は、入試で問われる正確な用語を使用すること`;
-
-    // デバッグ: プロンプト全体をログ出力（開発環境のみ）
-    if (process.env.NODE_ENV === "development") {
-      console.log("Full prompt:", prompt);
+export async function POST(request: NextRequest) {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return NextResponse.json({ error: "Supabase環境変数が設定されていません" }, { status: 500 });
     }
 
-    // Claude APIを呼び出し
-    const message = await anthropic.messages.create({
-      model: "claude-3-5-haiku-latest",
-      max_tokens: 8192, // 長文対応のため増量
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-    }).catch((error) => {
-      console.error("Claude API呼び出しエラー:", error);
-      throw new Error(
-        error.message || "Claude APIの呼び出しに失敗しました"
-      );
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
     });
 
-    // Claudeのレスポンスからテキストを取得
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return NextResponse.json({ error: "認証に失敗しました" }, { status: 401 });
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("credits, is_subscribed")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError) {
+      return NextResponse.json({ error: "ユーザー情報の取得に失敗しました" }, { status: 500 });
+    }
+
+    const credits: number = profile?.credits ?? 0;
+    const isSubscribed: boolean = profile?.is_subscribed ?? false;
+
+    if (!isSubscribed && credits <= 0) {
+      return NextResponse.json(
+        { error: "クレジットが不足しています。", credits, isSubscribed },
+        { status: 403 }
+      );
+    }
+
+    let body: { text?: string; subject?: Subject };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "リクエストボディの解析に失敗しました" }, { status: 400 });
+    }
+
+    const { text, subject = "japanese_classical" } = body;
+    if (!text?.trim()) {
+      return NextResponse.json({ error: "テキストが提供されていません" }, { status: 400 });
+    }
+
+    const anthropic = getAnthropicClient();
+    const prompt = buildPrompt(text.trim(), subject);
+
+    const message = await anthropic.messages.create({
+      model: "claude-3-5-haiku-latest",
+      max_tokens: 8192,
+      messages: [{ role: "user", content: prompt }],
+    });
+
     const content = message.content[0];
     if (content.type !== "text") {
-      return NextResponse.json(
-        { error: "予期しないレスポンス形式です" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "予期しないレスポンス形式です" }, { status: 500 });
     }
 
-    let responseText = content.text.trim();
+    let responseText = content.text
+      .trim()
+      .replace(/^```json\s*/, "")
+      .replace(/\s*```$/, "")
+      .replace(/^```\s*/, "");
 
-    // マークダウンコードブロックを除去（念のため）
-    responseText = responseText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
-    responseText = responseText.replace(/^```\s*/, "").replace(/\s*```$/, "");
-
-    // JSONをパース
-    let analysisResult: AnalysisResponse;
+    let analysisResult: Record<string, unknown>;
     try {
       analysisResult = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error("JSONパースエラー:", parseError);
-      console.error("レスポンステキスト:", responseText);
-      return NextResponse.json(
-        { error: "解析結果のパースに失敗しました", rawResponse: responseText },
-        { status: 500 }
-      );
+    } catch {
+      return NextResponse.json({ error: "解析結果のパースに失敗しました", rawResponse: responseText }, { status: 500 });
     }
 
-    // バリデーション
     if (
       !analysisResult.correctedText ||
-      !analysisResult.words ||
       !Array.isArray(analysisResult.words) ||
       analysisResult.words.length === 0 ||
-      typeof analysisResult.translation !== "string" ||
-      typeof analysisResult.explanation !== "string"
+      typeof analysisResult.translation !== "string"
     ) {
-      console.error("解析結果のバリデーションエラー:", analysisResult);
       return NextResponse.json(
-        { 
-          error: "解析結果の形式が正しくありません。全文が解析されていない可能性があります。",
-          details: `Words count: ${analysisResult.words?.length || 0}`
-        },
+        { error: "解析結果の形式が正しくありません", details: `Words: ${(analysisResult.words as unknown[])?.length ?? 0}` },
         { status: 500 }
       );
     }
 
-    // デバッグ: 解析結果の概要をログ出力
-    console.log("=== Claude API Response Debug ===");
-    console.log("Corrected text:", analysisResult.correctedText?.substring(0, 100) || "N/A");
-    console.log("Words count:", analysisResult.words?.length || 0);
-    console.log("Translation preview:", analysisResult.translation?.substring(0, 100) || "N/A");
-
-    // ========== クレジット消費処理 ==========
+    // クレジット消費
     let updatedCredits = credits;
     if (!isSubscribed) {
-      // サブスク会員でない場合、クレジットを1減らす
       updatedCredits = Math.max(0, credits - 1);
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ credits: updatedCredits })
-        .eq("id", user.id);
-
-      if (updateError) {
-        console.error("クレジット更新エラー:", updateError);
-        // エラーが発生しても解析結果は返す（ログに記録）
-      }
+      await supabase.from("profiles").update({ credits: updatedCredits }).eq("id", user.id);
     }
 
-    // レスポンスにクレジット情報を含める
-    const response: AnalysisResponse = {
-      ...analysisResult,
-      credits: updatedCredits,
-      isSubscribed: isSubscribed,
-    };
-
-    return NextResponse.json(response);
+    return NextResponse.json({ ...analysisResult, credits: updatedCredits, isSubscribed });
   } catch (error) {
     console.error("解析エラー:", error);
-    
-    // エラーの種類に応じて適切なメッセージを返す
-    if (error instanceof Error) {
-      if (error.message.includes("ANTHROPIC_API_KEY")) {
-        return NextResponse.json(
-          { error: "APIキーが正しく設定されていません。.env.localファイルを確認してください。" },
-          { status: 500 }
-        );
-      }
-      if (error.message.includes("Claude API")) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 500 }
-        );
-      }
-    }
-
-    // より詳細なエラーメッセージを返す
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    
-    // ネットワークエラーやタイムアウトの可能性
-    if (errorMessage.includes("fetch") || errorMessage.includes("network")) {
-      return NextResponse.json(
-        { error: "ネットワークエラーが発生しました。インターネット接続を確認してください。" },
-        { status: 500 }
-      );
-    }
-    
-    // APIキー関連のエラー
-    if (errorMessage.includes("401") || errorMessage.includes("authentication")) {
-      return NextResponse.json(
-        { error: "APIキーが無効です。.env.localファイルのAPIキーを確認してください。" },
-        { status: 500 }
-      );
-    }
-    
-    return NextResponse.json(
-      { 
-        error: "古文の解析中にエラーが発生しました",
-        details: errorMessage
-      },
-      { status: 500 }
-    );
+    const msg = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: "解析中にエラーが発生しました", details: msg }, { status: 500 });
   }
 }
-

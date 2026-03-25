@@ -1,17 +1,17 @@
 import Dexie, { Table } from "dexie";
 
-// 履歴テーブルの型定義
+// 履歴の型定義（Supabase 同期後は id は UUID 文字列）
 export interface HistoryItem {
-  id?: number;
+  id?: string;
   originalText: string; // 解析した古文
   translation: string; // 現代語訳
   resultJson: string; // 解析結果のJSON文字列
   createdAt: Date; // 日付
 }
 
-// 単語帳テーブルの型定義（大学入試対応の拡張版）
+// 単語帳の型定義（Supabase 同期後は id は UUID 文字列）
 export interface WordbookItem {
-  id?: number;
+  id?: string;
   surface: string; // 単語の表記
   reading: string; // 読み（ひらがな）
   partOfSpeech: string; // 品詞

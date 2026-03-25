@@ -3,56 +3,35 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import type { Session } from "@supabase/supabase-js";
-
-interface Profile {
-  credits: number;
-  is_subscribed: boolean;
-}
+import type { UserProfile } from "@/types";
 
 export function useProfile() {
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const profileSubscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const authSubscriptionRef = useRef<ReturnType<typeof supabase.auth.onAuthStateChange> | null>(null);
 
   const fetchProfile = useCallback(async () => {
     try {
-      const {
-        data: { session: currentSession },
-        error: sessionError,
-      } = await supabase.auth.getSession();
+      const { data: { session: currentSession }, error: sessionError } =
+        await supabase.auth.getSession();
 
-      // セッション取得エラーまたはセッションがない場合
       if (sessionError) {
-        // ネットワークエラーの場合は静かに失敗させる
-        if (sessionError.message?.includes("Failed to fetch") || 
-            sessionError.message?.includes("NetworkError") ||
-            sessionError.message?.includes("fetch")) {
-          console.log("ネットワークエラー（一時的）:", sessionError.message);
-          // ローディング状態を解除するが、既存の状態は保持
+        const isNetwork =
+          sessionError.message?.includes("Failed to fetch") ||
+          sessionError.message?.includes("NetworkError") ||
+          sessionError.message?.includes("fetch");
+        if (isNetwork) {
           setLoading(false);
           return;
         }
-        
-        console.log("セッションエラー:", sessionError.message);
-        setSession(null);
-        setProfile(null);
-        setLoading(false);
-        return;
-      }
-      
-      if (!currentSession) {
-        console.log("セッションがありません: 未ログイン");
         setSession(null);
         setProfile(null);
         setLoading(false);
         return;
       }
 
-      // ユーザーIDが確実に存在することを確認
-      if (!currentSession.user || !currentSession.user.id) {
-        console.warn("ユーザーIDが取得できません");
+      if (!currentSession?.user?.id) {
         setSession(null);
         setProfile(null);
         setLoading(false);
@@ -61,65 +40,46 @@ export function useProfile() {
 
       setSession(currentSession);
 
-      // プロフィールを取得
       const { data, error } = await supabase
         .from("profiles")
-        .select("credits, is_subscribed")
+        .select(
+          "id, username, display_name, avatar_url, target_school, bio, study_streak, last_studied_at, following_count, follower_count, credits, is_subscribed"
+        )
         .eq("id", currentSession.user.id)
         .single();
 
       if (error) {
-        // エラーの詳細をログ出力
-        console.error("プロフィール取得エラー:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        });
-
-        // データが存在しない場合は初期状態として扱う（エラーではない）
         if (error.code === "PGRST116") {
-          // 行が見つからない場合
-          console.log("プロフィールが存在しません。初期状態として扱います。");
           setProfile({
-            credits: 0,
+            id: currentSession.user.id,
+            username: "user_" + currentSession.user.id.slice(0, 8),
+            display_name: null,
+            avatar_url: null,
+            target_school: null,
+            bio: null,
+            study_streak: 0,
+            last_studied_at: null,
+            following_count: 0,
+            follower_count: 0,
+            credits: 3,
             is_subscribed: false,
           });
         } else {
-          // その他のエラーはnullとして扱う
           setProfile(null);
         }
       } else if (data) {
-        setProfile({
-          credits: data.credits ?? 0,
-          is_subscribed: data.is_subscribed ?? false,
-        });
-      } else {
-        // データがnullの場合も初期状態として扱う
-        setProfile({
-          credits: 0,
-          is_subscribed: false,
-        });
+        setProfile(data as UserProfile);
       }
     } catch (error) {
-      // ネットワークエラーの場合は静かに失敗させる
-      if (error instanceof Error && 
-          (error.message?.includes("Failed to fetch") || 
-           error.message?.includes("NetworkError") ||
-           error.message?.includes("fetch") ||
-           error.name === "AbortError")) {
-        console.log("ネットワークエラー（一時的catch）:", error.message);
-        // ローディング状態を解除するが、既存の状態は保持
+      const isNetwork =
+        error instanceof Error &&
+        (error.message?.includes("Failed to fetch") ||
+          error.message?.includes("NetworkError") ||
+          error.name === "AbortError");
+      if (isNetwork) {
         setLoading(false);
         return;
       }
-      
-      // エラーの詳細をログ出力
-      console.error("プロフィール取得エラー（catch）:", {
-        error,
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
       setProfile(null);
     } finally {
       setLoading(false);
@@ -128,80 +88,48 @@ export function useProfile() {
 
   useEffect(() => {
     let isMounted = true;
-
-    // 初回プロフィール取得
     fetchProfile();
 
-    // 認証状態の変更を監視
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      if (!isMounted) return;
-
-      if (newSession && newSession.user && newSession.user.id) {
-        setSession(newSession);
-        fetchProfile();
-      } else {
-        setSession(null);
-        setProfile(null);
-        setLoading(false);
-        
-        // プロフィールサブスクリプションをクリーンアップ
-        if (profileSubscriptionRef.current) {
-          profileSubscriptionRef.current.unsubscribe();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        if (!isMounted) return;
+        if (newSession?.user?.id) {
+          setSession(newSession);
+          fetchProfile();
+        } else {
+          setSession(null);
+          setProfile(null);
+          setLoading(false);
+          profileSubscriptionRef.current?.unsubscribe();
           profileSubscriptionRef.current = null;
         }
       }
-    });
-
-    authSubscriptionRef.current = subscription as any;
+    );
 
     return () => {
       isMounted = false;
-      
-      // 認証サブスクリプションをクリーンアップ
-      if (authSubscriptionRef.current) {
-        (authSubscriptionRef.current as any)?.unsubscribe();
-        authSubscriptionRef.current = null;
-      }
-      
-      // プロフィールサブスクリプションをクリーンアップ
-      if (profileSubscriptionRef.current) {
-        profileSubscriptionRef.current.unsubscribe();
-        profileSubscriptionRef.current = null;
-      }
+      subscription.unsubscribe();
+      profileSubscriptionRef.current?.unsubscribe();
+      profileSubscriptionRef.current = null;
     };
   }, [fetchProfile]);
 
-  // セッションが確実に取得できた後にのみリアルタイム更新を設定
+  // リアルタイム更新
   useEffect(() => {
-    if (!session || !session.user || !session.user.id) {
-      return;
-    }
+    if (!session?.user?.id) return;
 
-    // 既存のサブスクリプションをクリーンアップ
-    if (profileSubscriptionRef.current) {
-      profileSubscriptionRef.current.unsubscribe();
-    }
+    profileSubscriptionRef.current?.unsubscribe();
 
-    // 新しいサブスクリプションを作成
     const channel = supabase
-      .channel(`profile-changes-${session.user.id}`)
+      .channel(`profile-${session.user.id}`)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "profiles",
-          filter: `id=eq.${session.user.id}`,
-        },
+        { event: "*", schema: "public", table: "profiles", filter: `id=eq.${session.user.id}` },
         (payload) => {
-          // 現在のユーザーのプロフィールが変更された場合のみ更新
-          if (payload.new && (payload.new as any).id === session.user.id) {
-            setProfile({
-              credits: (payload.new as any).credits ?? 0,
-              is_subscribed: (payload.new as any).is_subscribed ?? false,
-            });
+          if ((payload.new as any)?.id === session.user.id) {
+            setProfile((prev) =>
+              prev ? { ...prev, ...(payload.new as Partial<UserProfile>) } : null
+            );
           }
         }
       )
@@ -210,17 +138,10 @@ export function useProfile() {
     profileSubscriptionRef.current = channel;
 
     return () => {
-      if (profileSubscriptionRef.current) {
-        profileSubscriptionRef.current.unsubscribe();
-        profileSubscriptionRef.current = null;
-      }
+      channel.unsubscribe();
+      profileSubscriptionRef.current = null;
     };
   }, [session?.user?.id]);
 
-  return {
-    profile,
-    loading,
-    refetch: fetchProfile, // 手動で再取得する関数
-  };
+  return { profile, session, loading, refetch: fetchProfile };
 }
-
