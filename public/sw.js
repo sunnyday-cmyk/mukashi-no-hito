@@ -1,5 +1,5 @@
 // Service Worker for PWA
-const CACHE_NAME = 'mukashi-no-hito-v1';
+const CACHE_NAME = 'study-royale-v1';
 const urlsToCache = [
   '/',
   '/scan',

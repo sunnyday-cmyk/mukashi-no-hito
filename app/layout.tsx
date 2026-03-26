@@ -4,28 +4,28 @@ import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | 昔の人",
-    default: "昔の人｜AI古文解析・現代語訳カメラ",
+    template: "%s | STUDY ROYALE",
+    default: "STUDY ROYALE | AI古文解析・現代語訳カメラ",
   },
   description:
     "カメラで撮るだけで古文を現代語訳。AIが瞬時に解読し、友達と単語帳を共有して一緒に学べる古文学習アプリ。",
-  applicationName: "昔の人",
+  applicationName: "STUDY ROYALE",
   keywords: ["古文", "現代語訳", "古文AI", "漢文", "英語", "単語帳", "受験", "学習"],
-  authors: [{ name: "昔の人" }],
+  authors: [{ name: "STUDY ROYALE" }],
   robots: { index: true, follow: true },
   verification: { google: "nYnsReuq__-1a0mO_P929c66GJcTQhweDfBfVPwEUYI" },
   openGraph: {
-    siteName: "昔の人",
+    siteName: "STUDY ROYALE",
     type: "website",
     locale: "ja_JP",
     url: "https://mukashi-no-hito-4uir.vercel.app/",
-    title: "昔の人｜AI古文学習アプリ",
+    title: "STUDY ROYALE | AI古文学習アプリ",
     description: "カメラで撮るだけで古文を現代語訳。単語帳を友達と共有して一緒に学ぼう。",
   },
-  twitter: { card: "summary", title: "昔の人｜AI古文学習" },
+  twitter: { card: "summary", title: "STUDY ROYALE | AI古文学習" },
   alternates: { canonical: "https://mukashi-no-hito-4uir.vercel.app/" },
   manifest: "/manifest.json",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "昔の人" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "STUDY ROYALE" },
   formatDetection: { telephone: false },
   other: {
     "mobile-web-app-capable": "yes",

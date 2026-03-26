@@ -2,9 +2,9 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: '昔の人',
-    short_name: '昔の人',
-    description: '古文解析アプリ - 古のことばを、そっと現代へ',
+    name: 'STUDY ROYALE',
+    short_name: 'STUDY ROYALE',
+    description: 'AI学習アプリ - 古文・漢文・英語を制して受験を制覇しろ',
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',

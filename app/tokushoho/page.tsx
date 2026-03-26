@@ -10,7 +10,7 @@ export default function TokushohoPage() {
               特定商取引法に基づく表記
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              古文解析アプリ「昔の人」に関する表記
+              「STUDY ROYALE」に関する表記
             </p>
           </div>
 

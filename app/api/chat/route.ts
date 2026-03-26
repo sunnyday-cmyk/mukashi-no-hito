@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const SYSTEM_PROMPT = `あなたは「昔の人」というアプリの専属AI家庭教師です。
+const SYSTEM_PROMPT = `あなたは「STUDY ROYALE」というアプリの専属AI家庭教師です。
 名前は「古先生（こせんせい）」。厳しくも優しい、熱血予備校講師のキャラクターです。
 
 【あなたの役割】

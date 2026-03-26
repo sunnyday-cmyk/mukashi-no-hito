@@ -10,7 +10,7 @@ export default function TermsPage() {
               利用規約
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              古文解析アプリ「昔の人」のご利用に関する規約
+              「STUDY ROYALE」のご利用に関する規約
             </p>
           </div>
 
@@ -20,7 +20,7 @@ export default function TermsPage() {
                 第1条（適用）
               </h3>
               <p>
-                本規約は、古文解析アプリ「昔の人」（以下「本サービス」）の利用条件を定めるものです。
+                本規約は、「STUDY ROYALE」（以下「本サービス」）の利用条件を定めるものです。
                 ご利用いただく際は、本規約に同意いただいたものとみなします。
               </p>
             </section>

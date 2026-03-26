@@ -10,7 +10,7 @@ export default function PrivacyPage() {
               プライバシーポリシー
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              古文解析アプリ「昔の人」における個人情報の取り扱いについて
+              「STUDY ROYALE」における個人情報の取り扱いについて
             </p>
           </div>
 

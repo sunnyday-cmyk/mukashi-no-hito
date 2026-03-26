@@ -85,7 +85,7 @@ export default function HomePage() {
         className="sticky top-0 z-40 safe-area-top px-4 pt-3 pb-3"
       >
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-white">昔の人</h1>
+          <h1 className="text-xl font-bold text-white">STUDY ROYALE</h1>
           <div className="flex gap-2">
             {/* 通知ベル（未読バッジ付き） */}
             <button

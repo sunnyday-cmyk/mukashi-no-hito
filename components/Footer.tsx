@@ -40,7 +40,7 @@ export default function Footer() {
             </Link>
           </div>
           <p className="text-xs text-gray-500">
-            © 2025 昔の人. All rights reserved.
+            © 2025 STUDY ROYALE. All rights reserved.
           </p>
         </div>
       </div>

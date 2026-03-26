@@ -71,7 +71,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center px-6 py-12">
       {/* ロゴ */}
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-white tracking-wider">昔の人</h1>
+        <h1 className="text-3xl font-bold text-white tracking-wider">STUDY ROYALE</h1>
         <p className="mt-2 text-sm text-white/60">
           AIで古文・漢文・英語を学ぼう
         </p>
