@@ -90,19 +90,17 @@ export async function POST(request: NextRequest) {
 
     const assistantMessage = assistantContent.text;
 
-    // チャット履歴をSupabaseに保存（完了を待ってから返す）
-    await Promise.all([
-      supabase.from("ai_chat_messages").insert({
-        user_id: user.id,
-        role: "user",
-        content: message.trim(),
-      }),
-      supabase.from("ai_chat_messages").insert({
-        user_id: user.id,
-        role: "assistant",
-        content: assistantMessage,
-      }),
-    ]).catch(console.error);
+    // チャット履歴をSupabaseに順番に保存（順序保証のため逐次実行）
+    await supabase.from("ai_chat_messages").insert({
+      user_id: user.id,
+      role: "user",
+      content: message.trim(),
+    });
+    await supabase.from("ai_chat_messages").insert({
+      user_id: user.id,
+      role: "assistant",
+      content: assistantMessage,
+    });
 
     return NextResponse.json({ message: assistantMessage });
   } catch (error) {
