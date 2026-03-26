@@ -90,8 +90,8 @@ export async function POST(request: NextRequest) {
 
     const assistantMessage = assistantContent.text;
 
-    // チャット履歴をSupabaseに保存（非同期・エラー無視）
-    Promise.all([
+    // チャット履歴をSupabaseに保存（完了を待ってから返す）
+    await Promise.all([
       supabase.from("ai_chat_messages").insert({
         user_id: user.id,
         role: "user",
