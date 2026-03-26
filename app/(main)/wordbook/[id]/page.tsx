@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Play, Brain, Trash2, Globe, Lock, Loader2, Edit2 } from "lucide-react";
+import { ArrowLeft, Plus, Play, Brain, Trash2, Globe, Lock, Loader2, Swords, LogIn } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import type { Wordbook, Word } from "@/types";
 import { SUBJECT_LABELS } from "@/types";
@@ -19,6 +19,10 @@ export default function WordbookDetailPage({ params }: { params: Promise<{ id: s
   const [addReading, setAddReading] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
+  const [battleLoading, setBattleLoading] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
+  const [joinLoading, setJoinLoading] = useState(false);
+  const [showJoinInput, setShowJoinInput] = useState(false);
 
   useEffect(() => { load(); }, [id]);
 
@@ -70,6 +74,72 @@ export default function WordbookDetailPage({ params }: { params: Promise<{ id: s
     if (!confirm("この単語を削除しますか？")) return;
     await supabase.from("words").delete().eq("id", wordId);
     setWords((prev) => prev.filter((w) => w.id !== wordId));
+  };
+
+  const generateInviteCode = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  };
+
+  const handleCreateBattle = async () => {
+    if (words.length < 4) { alert("対戦には4語以上必要です"); return; }
+    setBattleLoading(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { router.replace("/login"); return; }
+
+    // 問題セットを生成（最大10問）
+    const shuffled = [...words].sort(() => Math.random() - 0.5).slice(0, Math.min(10, words.length));
+    const questions = shuffled.map((word) => {
+      const others = words.filter((w) => w.id !== word.id).sort(() => Math.random() - 0.5).slice(0, 3).map((w) => w.back);
+      const options = [...others, word.back].sort(() => Math.random() - 0.5);
+      return { word_id: word.id, front: word.front, reading: word.reading || null, back: word.back, options };
+    });
+
+    let inviteCode = generateInviteCode();
+    let attempts = 0;
+    while (attempts < 5) {
+      const { data, error } = await supabase.from("battle_rooms").insert({
+        invite_code: inviteCode,
+        wordbook_id: id,
+        host_id: session.user.id,
+        questions,
+        question_count: questions.length,
+      }).select("id").single();
+      if (!error && data) {
+        router.push(`/battle/${data.id}`);
+        return;
+      }
+      inviteCode = generateInviteCode();
+      attempts++;
+    }
+    alert("ルームの作成に失敗しました。もう一度試してください。");
+    setBattleLoading(false);
+  };
+
+  const handleJoinBattle = async () => {
+    const code = joinCode.trim().toUpperCase();
+    if (code.length !== 6) { alert("6文字の招待コードを入力してください"); return; }
+    setJoinLoading(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { router.replace("/login"); return; }
+
+    const { data: room } = await supabase
+      .from("battle_rooms")
+      .select("id, host_id, status")
+      .eq("invite_code", code)
+      .eq("status", "waiting")
+      .single();
+
+    if (!room) { alert("有効な招待コードが見つかりません"); setJoinLoading(false); return; }
+    if (room.host_id === session.user.id) { alert("自分が作成したルームには参加できません"); setJoinLoading(false); return; }
+
+    await supabase.from("battle_rooms").update({
+      guest_id: session.user.id,
+      status: "playing",
+      started_at: new Date().toISOString(),
+    }).eq("id", room.id);
+
+    router.push(`/battle/${room.id}`);
   };
 
   const handleDeleteWordbook = async () => {
@@ -124,17 +194,55 @@ export default function WordbookDetailPage({ params }: { params: Promise<{ id: s
       </header>
 
       {/* アクションボタン */}
-      <div className="flex gap-3 p-4">
+      <div className="flex gap-2 p-4 pb-2">
         <button onClick={() => router.push(`/wordbook/${id}/study`)}
-          className="flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold text-white shadow"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl py-3 text-xs font-semibold text-white shadow"
           style={{ background: "var(--color-primary)" }}>
-          <Brain className="h-4 w-4" /> フラッシュカード
+          <Brain className="h-3.5 w-3.5" /> フラッシュ
         </button>
         <button onClick={() => router.push(`/wordbook/${id}/test`)}
-          className="flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold text-white shadow"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl py-3 text-xs font-semibold text-white shadow"
           style={{ background: "var(--color-accent)" }}>
-          <Play className="h-4 w-4" /> テスト
+          <Play className="h-3.5 w-3.5" /> テスト
         </button>
+        <button
+          onClick={handleCreateBattle}
+          disabled={battleLoading || words.length < 4}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl py-3 text-xs font-semibold text-white shadow disabled:opacity-50"
+          style={{ background: "#e11d48" }}>
+          {battleLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Swords className="h-3.5 w-3.5" />}
+          対戦する
+        </button>
+      </div>
+
+      {/* 招待コードで参加 */}
+      <div className="px-4 pb-2">
+        {!showJoinInput ? (
+          <button
+            onClick={() => setShowJoinInput(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border py-2.5 text-xs font-medium transition"
+            style={{ borderColor: "var(--color-border)", color: "#6b7280" }}>
+            <LogIn className="h-3.5 w-3.5" /> 招待コードで参加
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <input
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              maxLength={6}
+              placeholder="招待コード (6文字)"
+              className="flex-1 rounded-xl border px-3 py-2 text-sm font-mono uppercase tracking-widest focus:outline-none"
+              style={{ borderColor: "var(--color-border)" }}
+            />
+            <button
+              onClick={handleJoinBattle}
+              disabled={joinLoading || joinCode.length !== 6}
+              className="rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              style={{ background: "#e11d48" }}>
+              {joinLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "参加"}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="px-4 space-y-3">
