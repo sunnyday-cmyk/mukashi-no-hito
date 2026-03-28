@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:official": "node scripts/seed-official-wordbook.mjs",
+    "parse:eiken": "node scripts/parse-eiken-grade2.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
@@ -14,6 +16,7 @@
     "@supabase/auth-ui-shared": "^0.1.8",
     "@supabase/supabase-js": "^2.90.1",
     "dexie": "^4.0.0",
+    "dotenv": "^17.3.1",
     "lucide-react": "^0.562.0",
     "next": "16.1.1",
     "react": "19.2.3",
@@ -28,7 +31,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "pdf-parse": "^2.4.5",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

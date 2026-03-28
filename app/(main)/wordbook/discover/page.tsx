@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Search, Copy, BookOpen, Users, Star, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { copyWordbookToMyLibrary } from "@/lib/copyWordbook";
 import type { Wordbook, Subject } from "@/types";
 import { SUBJECT_LABELS } from "@/types";
 
@@ -45,38 +46,11 @@ export default function DiscoverPage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { router.replace("/login"); return; }
 
-    // 単語帳をコピー
-    const { data: newWb } = await supabase.from("wordbooks").insert({
-      user_id: session.user.id,
-      title: wb.title + " (コピー)",
-      subject: wb.subject,
-      description: wb.description,
-      is_public: false,
-      cover_color: wb.cover_color,
-      tags: wb.tags,
-    }).select("id").single();
-
-    if (newWb) {
-      // 単語をコピー
-      const { data: srcWords } = await supabase.from("words").select("*").eq("wordbook_id", wb.id);
-      if (srcWords?.length) {
-        await supabase.from("words").insert(
-          srcWords.map(({ id: _id, wordbook_id: _wid, created_at: _ca, ...rest }: Record<string, unknown>) => ({
-            ...rest,
-            wordbook_id: newWb.id,
-          }))
-        );
-      }
-      // コピー記録
-      await supabase.from("wordbook_copies").upsert({
-        original_wordbook_id: wb.id,
-        copied_wordbook_id: newWb.id,
-        copied_by: session.user.id,
-      }, { onConflict: "original_wordbook_id,copied_by" });
-      // コピー数インクリメント
-      await supabase.from("wordbooks").update({ copy_count: (wb.copy_count || 0) + 1 }).eq("id", wb.id);
-
-      router.push(`/wordbook/${newWb.id}`);
+    const result = await copyWordbookToMyLibrary(supabase, wb, session.user.id);
+    if ("newWordbookId" in result) {
+      router.push(`/wordbook/${result.newWordbookId}`);
+    } else {
+      alert(result.error);
     }
     setCopying(null);
   };

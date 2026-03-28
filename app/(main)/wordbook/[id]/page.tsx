@@ -2,8 +2,9 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Play, Brain, Trash2, Globe, Lock, Loader2, Swords, LogIn } from "lucide-react";
+import { ArrowLeft, Plus, Play, Brain, Trash2, Globe, Lock, Loader2, Swords, LogIn, Copy } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { copyWordbookToMyLibrary, getMyCopyWordbookId } from "@/lib/copyWordbook";
 import type { Wordbook, Word } from "@/types";
 import { SUBJECT_LABELS } from "@/types";
 
@@ -23,6 +24,8 @@ export default function WordbookDetailPage({ params }: { params: Promise<{ id: s
   const [joinCode, setJoinCode] = useState("");
   const [joinLoading, setJoinLoading] = useState(false);
   const [showJoinInput, setShowJoinInput] = useState(false);
+  const [myCopyId, setMyCopyId] = useState<string | null>(null);
+  const [copyLoading, setCopyLoading] = useState(false);
 
   useEffect(() => { load(); }, [id]);
 
@@ -36,8 +39,18 @@ export default function WordbookDetailPage({ params }: { params: Promise<{ id: s
     ]);
 
     if (wb) {
-      setWordbook(wb as Wordbook);
-      setIsOwner(session?.user.id === wb.user_id);
+      const book = wb as Wordbook;
+      setWordbook(book);
+      const owner = session?.user.id === book.user_id;
+      setIsOwner(owner);
+      if (session?.user.id && !owner && book.is_public) {
+        const copyId = await getMyCopyWordbookId(supabase, book.id, session.user.id);
+        setMyCopyId(copyId);
+      } else {
+        setMyCopyId(null);
+      }
+    } else {
+      setMyCopyId(null);
     }
     setWords(wds as Word[] || []);
     setLoading(false);
@@ -142,6 +155,28 @@ export default function WordbookDetailPage({ params }: { params: Promise<{ id: s
     router.push(`/battle/${room.id}`);
   };
 
+  const handleCopyOrOpenMine = async () => {
+    if (myCopyId) {
+      router.push(`/wordbook/${myCopyId}`);
+      return;
+    }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      router.replace("/login");
+      return;
+    }
+    if (!wordbook) return;
+    setCopyLoading(true);
+    const result = await copyWordbookToMyLibrary(supabase, wordbook, session.user.id);
+    setCopyLoading(false);
+    if ("error" in result) {
+      alert(result.error);
+      return;
+    }
+    setMyCopyId(result.newWordbookId);
+    router.push(`/wordbook/${result.newWordbookId}`);
+  };
+
   const handleDeleteWordbook = async () => {
     if (!confirm(`「${wordbook?.title}」を削除しますか？この操作は元に戻せません。`)) return;
     await supabase.from("wordbooks").delete().eq("id", id);
@@ -192,6 +227,28 @@ export default function WordbookDetailPage({ params }: { params: Promise<{ id: s
           {wordbook.description && <p className="text-sm text-white/70 mt-1">{wordbook.description}</p>}
         </div>
       </header>
+
+      {!isOwner && wordbook.is_public && (
+        <div className="px-4 pt-3">
+          <button
+            type="button"
+            onClick={handleCopyOrOpenMine}
+            disabled={copyLoading}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold text-white shadow disabled:opacity-60"
+            style={{ background: "var(--color-primary)" }}
+          >
+            {copyLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Copy className="h-4 w-4" />
+            )}
+            {myCopyId ? "マイのコピーを開く" : "マイ単語帳に追加（コピー）"}
+          </button>
+          <p className="mt-1.5 text-center text-xs text-gray-500">
+            コピー後は単語の追加・削除など自由に編集できます
+          </p>
+        </div>
+      )}
 
       {/* アクションボタン */}
       <div className="flex gap-2 p-4 pb-2">

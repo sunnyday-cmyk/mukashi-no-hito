@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, MessageCircle, BookOpen, Flame, Loader2, Heart } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import type { Post, UserProfile } from "@/types";
 import { SUBJECT_LABELS } from "@/types";
+
+/** シードで投入する公式単語帳タイトル（is_official が未設定でもヒットさせる） */
+const OFFICIAL_WORDBOOK_TITLE = "英検２級レベル";
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -25,14 +28,21 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [myId, setMyId] = useState<string | null>(null);
+  const [officialWordbooks, setOfficialWordbooks] = useState<
+    { id: string; title: string; word_count: number; cover_color: string | null; subject: string }[]
+  >([]);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) {
+      setMyId(null);
+      setProfile(null);
+      setPosts([]);
+      setOfficialWordbooks([]);
+      setUnreadCount(0);
+      setLoading(false);
+      return;
+    }
     setMyId(session.user.id);
 
     const [{ data: prof }, { data: postsData }, { count: unread }] = await Promise.all([
@@ -53,8 +63,58 @@ export default function HomePage() {
     if (prof) setProfile(prof as UserProfile);
     setPosts((postsData as Post[]) || []);
     setUnreadCount(unread || 0);
+
+    let officialRows: { id: string; title: string; word_count: number; cover_color: string | null; subject: string }[] =
+      [];
+    const { data: byFlag, error: errFlag } = await supabase
+      .from("wordbooks")
+      .select("id,title,word_count,cover_color,subject")
+      .eq("is_public", true)
+      .eq("is_official", true)
+      .order("title");
+    if (errFlag) {
+      console.error("[home] wordbooks is_official query:", errFlag.message);
+    } else if (byFlag?.length) {
+      officialRows = byFlag;
+    }
+
+    if (officialRows.length === 0) {
+      const { data: byTitle, error: errTitle } = await supabase
+        .from("wordbooks")
+        .select("id,title,word_count,cover_color,subject")
+        .eq("is_public", true)
+        .eq("title", OFFICIAL_WORDBOOK_TITLE)
+        .order("title");
+      if (errTitle) {
+        console.error("[home] wordbooks title fallback:", errTitle.message);
+      } else if (byTitle?.length) {
+        officialRows = byTitle;
+      }
+    }
+
+    setOfficialWordbooks(officialRows);
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    loadData();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === "INITIAL_SESSION" || event === "SIGNED_IN") && session) {
+        void loadData();
+      }
+      if (event === "SIGNED_OUT") {
+        setMyId(null);
+        setProfile(null);
+        setPosts([]);
+        setOfficialWordbooks([]);
+        setUnreadCount(0);
+        setLoading(false);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [loadData]);
 
   const handleLike = async (postId: string, isLiked: boolean) => {
     if (!myId) return;
@@ -149,6 +209,28 @@ export default function HomePage() {
       </header>
 
       <main className="px-4 py-4 space-y-4">
+        {!loading && officialWordbooks.length > 0 && (
+          <section>
+            <h2 className="mb-2 text-sm font-bold text-gray-700">公式おすすめ</h2>
+            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+              {officialWordbooks.map((wb) => (
+                <button
+                  key={wb.id}
+                  type="button"
+                  onClick={() => router.push(`/wordbook/${wb.id}`)}
+                  className="flex h-36 w-36 flex-shrink-0 flex-col justify-between rounded-2xl p-3 text-left text-white shadow-md transition active:scale-[0.98]"
+                  style={{ background: wb.cover_color || "var(--color-accent)" }}
+                >
+                  <span className="rounded-full bg-black/20 px-2 py-0.5 text-[10px] font-semibold w-fit">公式</span>
+                  <div>
+                    <p className="text-sm font-bold leading-tight line-clamp-3">{wb.title}</p>
+                    <p className="mt-1 text-xs text-white/80">{wb.word_count}語 · {SUBJECT_LABELS[wb.subject as import("@/types").Subject] || wb.subject}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin" style={{ color: "var(--color-accent)" }} />
