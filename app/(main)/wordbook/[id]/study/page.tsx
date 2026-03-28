@@ -4,6 +4,7 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, RotateCcw, CheckCircle, XCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { fetchAllWordsForWordbook } from "@/lib/fetchAllWords";
 import { calcNextReview, gradeFromFeedback } from "@/lib/srs";
 import type { Word, WordProgress } from "@/types";
 
@@ -23,13 +24,20 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { router.replace("/login"); return; }
 
-    const [{ data: wds }, { data: prog }] = await Promise.all([
-      supabase.from("words").select("*").eq("wordbook_id", id).order("sort_order"),
+    const [wds, { data: prog }] = await Promise.all([
+      fetchAllWordsForWordbook(supabase, id).catch((e) => {
+        console.error("[study] fetchAllWordsForWordbook:", e);
+        return [] as Word[];
+      }),
       supabase.from("word_progress").select("*").eq("user_id", session.user.id),
     ]);
 
-    if (!wds) { setLoading(false); return; }
-    setWords(wds as Word[]);
+    if (!wds.length) {
+      setWords([]);
+      setLoading(false);
+      return;
+    }
+    setWords(wds);
 
     const map = new Map<string, WordProgress>();
     (prog || []).forEach((p: WordProgress) => map.set(p.word_id, p));

@@ -4,6 +4,7 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { fetchAllWordsForWordbook } from "@/lib/fetchAllWords";
 import type { Word } from "@/types";
 
 type Mode = "meaning" | "front";
@@ -32,10 +33,21 @@ export default function TestPage({ params }: { params: Promise<{ id: string }> }
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    supabase.from("words").select("*").eq("wordbook_id", id).order("sort_order").then(({ data }) => {
-      setWords(data as Word[] || []);
-      setLoading(false);
-    });
+    let cancelled = false;
+    (async () => {
+      try {
+        const w = await fetchAllWordsForWordbook(supabase, id);
+        if (!cancelled) setWords(w);
+      } catch (e) {
+        console.error("[test] fetchAllWordsForWordbook:", e);
+        if (!cancelled) setWords([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   const buildQuestions = () => {

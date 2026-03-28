@@ -4,6 +4,7 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, Play, Brain, Trash2, Globe, Lock, Loader2, Swords, LogIn, Copy } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { fetchAllWordsForWordbook } from "@/lib/fetchAllWords";
 import { copyWordbookToMyLibrary, getMyCopyWordbookId } from "@/lib/copyWordbook";
 import type { Wordbook, Word } from "@/types";
 import { SUBJECT_LABELS } from "@/types";
@@ -33,9 +34,12 @@ export default function WordbookDetailPage({ params }: { params: Promise<{ id: s
     setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
 
-    const [{ data: wb }, { data: wds }] = await Promise.all([
+    const [{ data: wb }, wds] = await Promise.all([
       supabase.from("wordbooks").select("*").eq("id", id).single(),
-      supabase.from("words").select("*").eq("wordbook_id", id).order("sort_order").order("created_at"),
+      fetchAllWordsForWordbook(supabase, id).catch((e) => {
+        console.error("[wordbook] fetchAllWordsForWordbook:", e);
+        return [] as Word[];
+      }),
     ]);
 
     if (wb) {
@@ -52,7 +56,7 @@ export default function WordbookDetailPage({ params }: { params: Promise<{ id: s
     } else {
       setMyCopyId(null);
     }
-    setWords(wds as Word[] || []);
+    setWords(wds);
     setLoading(false);
   };
 
@@ -346,9 +350,12 @@ export default function WordbookDetailPage({ params }: { params: Promise<{ id: s
               <div key={word.id}
                 className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm"
                 style={{ border: "1px solid var(--color-border)" }}>
-                <div className="flex-shrink-0 h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: word.color_code || "var(--color-accent)" }}>
-                  {word.front.charAt(0)}
+                <div
+                  className="flex-shrink-0 h-10 min-w-10 px-1 rounded-xl flex items-center justify-center text-white text-xs font-bold tabular-nums"
+                  style={{ backgroundColor: word.color_code || "var(--color-accent)" }}
+                  title={`#${word.sort_order + 1}`}
+                >
+                  {word.sort_order + 1}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-1.5">

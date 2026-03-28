@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Wordbook } from "@/types";
+import { fetchAllWordsForWordbook } from "@/lib/fetchAllWords";
+import type { Word, Wordbook } from "@/types";
 
 export async function getMyCopyWordbookId(
   supabase: SupabaseClient,
@@ -43,14 +44,17 @@ export async function copyWordbookToMyLibrary(
     return { error: insErr?.message ?? "単語帳の作成に失敗しました" };
   }
 
-  const { data: srcWords } = await supabase.from("words").select("*").eq("wordbook_id", wb.id);
-  if (srcWords?.length) {
-    const rows = srcWords.map(
-      ({ id: _id, wordbook_id: _wid, created_at: _ca, ...rest }: Record<string, unknown>) => ({
-        ...rest,
-        wordbook_id: newWb.id,
-      })
-    );
+  let srcWords: Word[];
+  try {
+    srcWords = await fetchAllWordsForWordbook(supabase, wb.id);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "単語の取得に失敗しました" };
+  }
+  if (srcWords.length) {
+    const rows = srcWords.map(({ id: _id, wordbook_id: _wid, created_at: _ca, ...rest }) => ({
+      ...rest,
+      wordbook_id: newWb.id,
+    }));
     const { error: wErr } = await supabase.from("words").insert(rows);
     if (wErr) return { error: wErr.message };
   }
