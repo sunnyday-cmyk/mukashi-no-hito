@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import { getSiteUrl } from "@/lib/siteUrl";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+
+const siteUrl = `${getSiteUrl()}/`;
 
 export const metadata: Metadata = {
   title: {
@@ -18,12 +22,12 @@ export const metadata: Metadata = {
     siteName: "STUDY ROYALE",
     type: "website",
     locale: "ja_JP",
-    url: "https://mukashi-no-hito-4uir.vercel.app/",
+    url: siteUrl,
     title: "STUDY ROYALE | AI古文学習アプリ",
     description: "カメラで撮るだけで古文を現代語訳。単語帳を友達と共有して一緒に学ぼう。",
   },
   twitter: { card: "summary", title: "STUDY ROYALE | AI古文学習" },
-  alternates: { canonical: "https://mukashi-no-hito-4uir.vercel.app/" },
+  alternates: { canonical: siteUrl },
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -56,6 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ja">
       <body className="antialiased">
         {children}
+        <SpeedInsights />
         <ServiceWorkerRegistration />
       </body>
     </html>
