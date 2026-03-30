@@ -3,16 +3,19 @@ import "./globals.css";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { notoSansJP, notoSerifJP } from "./fonts";
 
 const siteUrl = `${getSiteUrl()}/`;
 
 export const metadata: Metadata = {
+  // 相対URLをabsoluteに解決するための基準（SEO/OG/カノニカルで一貫性を保つ）
+  metadataBase: new URL(siteUrl),
   title: {
-    template: "%s | STUDY ROYALE",
+    template: "STUDY ROYALE | %s",
     default: "STUDY ROYALE | AI古文解析・現代語訳カメラ",
   },
   description:
-    "カメラで撮るだけで古文を現代語訳。AIが瞬時に解読し、友達と単語帳を共有して一緒に学べる古文学習アプリ。",
+    "カメラで撮るだけで古文を現代語訳。AIが瞬時に解読・解析し、自分だけの単語帳も作成可能。友達と一緒に学べる次世代の古文学習アプリ。",
   applicationName: "STUDY ROYALE",
   keywords: ["古文", "現代語訳", "古文AI", "漢文", "英語", "単語帳", "受験", "学習"],
   authors: [{ name: "STUDY ROYALE" }],
@@ -23,10 +26,16 @@ export const metadata: Metadata = {
     type: "website",
     locale: "ja_JP",
     url: siteUrl,
-    title: "STUDY ROYALE | AI古文学習アプリ",
-    description: "カメラで撮るだけで古文を現代語訳。単語帳を友達と共有して一緒に学ぼう。",
+    title: "STUDY ROYALE | AI古文解析・現代語訳カメラ",
+    description:
+      "カメラで撮るだけで古文を現代語訳。AIが瞬時に解読・解析し、自分だけの単語帳も作成可能。友達と一緒に学べる次世代の古文学習アプリ。",
   },
-  twitter: { card: "summary", title: "STUDY ROYALE | AI古文学習" },
+  twitter: {
+    card: "summary",
+    title: "STUDY ROYALE | AI古文解析・現代語訳カメラ",
+    description:
+      "カメラで撮るだけで古文を現代語訳。AIが瞬時に解読・解析し、自分だけの単語帳も作成可能。友達と一緒に学べる次世代の古文学習アプリ。",
+  },
   alternates: { canonical: siteUrl },
   manifest: "/manifest.json",
   icons: {
@@ -57,8 +66,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ja">
-      <body className="antialiased">
+    <html lang="ja" className={notoSerifJP.variable}>
+      <body className={`${notoSansJP.className} antialiased`}>
         {children}
         <SpeedInsights />
         <ServiceWorkerRegistration />

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import NextImage from "next/image";
 import { Loader2, X, ArrowRight, Crop, Edit3 } from "lucide-react";
 import Cropper from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
@@ -156,7 +157,17 @@ export default function CameraPage() {
             />
           </div>
         ) : (
-          <img src={captured} alt="preview" className="h-full w-full object-contain bg-black" />
+          <div className="relative h-full w-full">
+            <NextImage
+              src={captured}
+              alt="撮影プレビュー"
+              fill
+              className="object-contain bg-black"
+              unoptimized
+              priority
+              sizes="100vw"
+            />
+          </div>
         )}
       </div>
 

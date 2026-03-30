@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { ArrowLeft, Copy, CheckCircle2, XCircle, Trophy, Loader2, Swords } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -226,9 +227,18 @@ export default function BattlePage({ params }: { params: Promise<{ roomId: strin
       className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white"
       style={{ background: "var(--color-accent)" }}
     >
-      {profile?.avatar_url
-        ? <img src={profile.avatar_url} className="h-10 w-10 rounded-full object-cover" />
-        : fallback[0]?.toUpperCase() || "?"}
+      {profile?.avatar_url ? (
+        <Image
+          src={profile.avatar_url}
+          alt=""
+          width={40}
+          height={40}
+          className="h-10 w-10 rounded-full object-cover"
+          unoptimized
+        />
+      ) : (
+        fallback[0]?.toUpperCase() || "?"
+      )}
     </div>
   );
 
